@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: user-service
+  config:
+    import: "optional:file:.env[.properties]"
+
+  datasource:
+    h2:
+      url: jdbc:h2:file:./user-service-h2-database
+      driver-class-name: org.h2.Driver
+      username: sa
+      password: ""
+    postgres:
+      url: jdbc:postgresql://localhost:5432/rent-a-car-user
+      driver-class-name: org.postgresql.Driver
+      username: postgres
+      password: 123456
+
+  jpa:
+    h2:
+      database-platform: org.hibernate.dialect.H2Dialect
+      show-sql: true
+      hibernate:
+        ddl-auto: update
+    postgres:
+      database-platform: org.hibernate.dialect.PostgreSQLDialect
+      show-sql: true
+      hibernate:
+        ddl-auto: update
+
+  h2:
+    console:
+      enabled: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI}   # realm bilgisi
+          jwk-set-uri: ${JWT_ISSUER_URI}/protocol/openid-connect/certs
+
+jwt:
+  auth:
+    converter:
+      resource-id: ${CLIENT_ID}   # client bilgisi
+      principle-attribute: ${PRINCIPLE_ATTRIBUTE}
+
+keycloak:
+  auth-server-url: ${ADMIN_AUTH_URL}
+  realm: ${REALM}
+  resource: ${CLIENT_ID}
+  credentials:
+    secret: ${CLIENT_SECRET}
+  admin-username: ${KEYCLOAK_ADMIN_USERNAME}
+  admin-password: ${KEYCLOAK_ADMIN_PASSWORD}
+
+server:
+  port: 8282

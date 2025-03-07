@@ -1,0 +1,28 @@
+package com.tahaakocer.user_service.dto;
+
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.tahaakocer.user_service.model.enums.UserStatus;
+import lombok.*;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@Builder
+public class UserResponse {
+    private UUID id;
+    private String TCNo;
+    private String firstName;
+    private String lastName;
+    private String phoneNumber;
+    private String email;
+    private String keycloakUserId;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private UserStatus status;
+}

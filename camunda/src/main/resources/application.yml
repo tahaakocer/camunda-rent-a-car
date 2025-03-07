@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: camunda
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: jdbc:h2:file:./camunda-h2-database
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+  h2:
+    console:
+      enabled: true
+  cache:
+    type: redis
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI} #realm
+          jwk-set-uri: ${JWT_ISSUER_URI}/protocol/openid-connect/certs
+camunda:
+  bpm:
+    admin-user:
+      id: ${ADMIN_USER_ID}
+      password: ${ADMIN_USER_PASSWORD}
+    auto-deployment-enabled: true
+    enabled: true
+jwt:
+  auth:
+    converter:
+      resource-id: ${CLIENT_ID} #client
+      principle-attribute: ${PRINCIPLE_ATTRIBUTE}
+
+keycloak:
+  client-id: ${CLIENT_ID}
+  client-secret: ${CLIENT_SECRET}
+  username: ${USERNAME}
+  password: ${PASSWORD}
+  token:
+    url: ${JWT_ISSUER_URI}/protocol/openid-connect/token
+server:
+  port: 8181

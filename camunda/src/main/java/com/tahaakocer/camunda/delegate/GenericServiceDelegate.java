@@ -1,0 +1,233 @@
+package com.tahaakocer.camunda.delegate;
+
+import com.tahaakocer.camunda.utils.VariableUtils;
+import org.camunda.bpm.engine.delegate.BpmnError;
+import org.camunda.bpm.engine.delegate.DelegateExecution;
+import org.camunda.bpm.engine.delegate.Expression;
+import org.camunda.bpm.engine.delegate.JavaDelegate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.*;
+import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Component
+public class GenericServiceDelegate implements JavaDelegate {
+
+    private static final Logger log = LoggerFactory.getLogger(GenericServiceDelegate.class);
+
+    private final RestTemplate restTemplate;
+    private final RedisTemplate<String, String> redisTemplate; // Redis üzerinden token yönetimi için
+
+    @Value("${keycloak.client-id}")
+    private String clientId;
+
+    @Value("${keycloak.username}")
+    private String username;
+
+    @Value("${keycloak.password}")
+    private String password;
+
+    @Value("${keycloak.client-secret}")
+    private String clientSecret;
+
+    @Value("${keycloak.token.url}")
+    private String tokenUrl;
+
+    private Expression serviceName;
+    private Expression parameters;
+    private Expression results;
+
+    public GenericServiceDelegate(RestTemplate restTemplate, RedisTemplate<String, String> redisTemplate) {
+        this.restTemplate = restTemplate;
+        this.redisTemplate = redisTemplate;
+    }
+
+    @Override
+    public void execute(DelegateExecution execution) {
+        try {
+            String serviceUrl = (String) serviceName.getValue(execution);
+            String parametersVal = (String) parameters.getValue(execution);
+            String resultsVal = (String) results.getValue(execution);
+
+            log.info("GenericServiceDelegate - serviceUrl: {}", serviceUrl);
+            log.info("GenericServiceDelegate - parameters: {}", parametersVal);
+            log.info("GenericServiceDelegate - results: {}", resultsVal);
+
+            // Parametre anahtarlarını virgül ile ayrıştırıp listeye çeviriyoruz.
+            List<String> parameterKeys = VariableUtils.StringSplit(parametersVal);
+            List<String> resultFields = VariableUtils.StringSplit(resultsVal);
+
+            // Request body oluşturuluyor.
+            Map<String, Object> requestBody = new HashMap<>();
+            for (String key : parameterKeys) {
+                key = key.trim();
+                Object value = getParameterValue(execution, key);
+                if (value != null) {
+                    requestBody.put(key, value);
+                    log.info("Request body param '{}' set edildi: {}", key, value);
+                } else {
+                    log.warn("Parametre '{}' process variable'larda ya da result map'lerinde bulunamadı.", key);
+                }
+            }
+            log.info("GenericServiceDelegate - Oluşturulan Request Body: {}", requestBody);
+
+            // Process instance'a özgü Redis anahtarlarını oluşturuyoruz.
+            String processInstanceId = execution.getProcessInstanceId();
+            String accessTokenKey = "accessToken:" + processInstanceId;
+            String refreshTokenKey = "refreshToken:" + processInstanceId;
+
+            // Redis'ten access token'ı alıyoruz.
+            String accessToken = redisTemplate.opsForValue().get(accessTokenKey);
+            if (accessToken == null || accessToken.isEmpty()) {
+                log.info("Redis'te access token bulunamadı, yeni token alınıyor.");
+                accessToken = obtainNewAccessToken(execution, accessTokenKey, refreshTokenKey);
+            }
+
+            @SuppressWarnings("rawtypes")
+            ResponseEntity<Map> responseEntity;
+            try {
+                responseEntity = sendRequest(serviceUrl, requestBody, accessToken);
+            } catch (HttpClientErrorException e) {
+                if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                    log.warn("Access token geçersiz, yeni token alınıyor (refresh token kullanılmadan).");
+                    accessToken = obtainNewAccessToken(execution, accessTokenKey, refreshTokenKey);
+                    redisTemplate.opsForValue().set(accessTokenKey, accessToken);
+                    responseEntity = sendRequest(serviceUrl, requestBody, accessToken);
+                } else {
+                    String errorMsg = "GenericServiceDelegate - Mikroservis isteği hatası: " + e.getMessage();
+                    execution.setVariable("errorMessage", errorMsg);
+                    throw new BpmnError("SERVICE_ERROR", errorMsg);
+                }
+            }
+
+            Map fullResponse = responseEntity.getBody();
+            log.info("GenericServiceDelegate - Full Response: {}", fullResponse);
+            if (fullResponse == null) {
+                String errorMsg = "Mikroservisten boş response alındı.";
+                log.error(errorMsg);
+                execution.setVariable("errorMessage", errorMsg);
+                throw new BpmnError("SERVICE_ERROR", errorMsg);
+            }
+
+            // Mikroservis hata kodunu kontrol ediyoruz.
+            if (fullResponse.containsKey("code")) {
+                int code;
+                try {
+                    code = Integer.parseInt(fullResponse.get("code").toString());
+                } catch (NumberFormatException nfe) {
+                    String errorMsg = "Response 'code' değeri sayı formatında değil: " + fullResponse.get("code");
+                    log.error(errorMsg);
+                    execution.setVariable("errorMessage", errorMsg);
+                    throw new BpmnError("SERVICE_ERROR", errorMsg);
+                }
+                HttpStatus status = HttpStatus.resolve(code);
+                if (status == null || status.isError()) {
+                    String message = fullResponse.containsKey("message") ? fullResponse.get("message").toString() : "Hata oluştu.";
+                    String errorMsg = "Mikroservis hata kodu: " + code + ", Mesaj: " + message;
+                    log.error(errorMsg);
+                    execution.setVariable("errorMessage", errorMsg);
+                    throw new BpmnError("SERVICE_ERROR", errorMsg);
+                }
+            }
+
+            // Response içerisindeki belirtilen alanları resultMap'e ekliyoruz.
+            Map<String, Object> resultMap = new HashMap<>();
+            for (String field : resultFields) {
+                field = field.trim();
+                if (fullResponse.containsKey(field)) {
+                    resultMap.put(field, fullResponse.get(field));
+                    log.info("Result field '{}' set edildi: {}", field, fullResponse.get(field));
+                } else {
+                    log.warn("Response içerisinde '{}' alanı bulunamadı.", field);
+                }
+            }
+
+            String currentResultKey = execution.getCurrentActivityId() + "_Results";
+            execution.setVariable(currentResultKey, resultMap);
+            log.info("GenericServiceDelegate - Result map '{}' anahtarıyla set edildi.", currentResultKey);
+
+            @SuppressWarnings("unchecked")
+            List<String> resultKeys = (List<String>) execution.getVariable("resultKeys");
+            if (resultKeys == null) {
+                resultKeys = new ArrayList<>();
+            }
+            resultKeys.add(currentResultKey);
+            execution.setVariable("resultKeys", resultKeys);
+
+        } catch (Exception e) {
+            log.error("GenericServiceDelegate - Hata oluştu: {}", e.getMessage(), e);
+            execution.setVariable("errorMessage", e.getMessage());
+            throw new BpmnError("SERVICE_ERROR", e.getMessage());
+        }
+    }
+
+    // Process variable'dan parametre alıyoruz.
+    private Object getParameterValue(DelegateExecution execution, String param) {
+        Object value = execution.getVariable(param);
+        if (value != null) {
+            return value;
+        }
+        @SuppressWarnings("unchecked")
+        List<String> resultKeys = (List<String>) execution.getVariable("resultKeys");
+        if (resultKeys != null && !resultKeys.isEmpty()) {
+            for (int i = resultKeys.size() - 1; i >= 0; i--) {
+                String key = resultKeys.get(i);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> resultMap = (Map<String, Object>) execution.getVariable(key);
+                if (resultMap != null && resultMap.containsKey(param)) {
+                    log.info("Parametre '{}' result map '{}' içerisinden alındı.", param, key);
+                    return resultMap.get(param);
+                }
+            }
+        }
+        return null;
+    }
+
+    // Mikroservis isteğini access token ile gönderir.
+    private ResponseEntity<Map> sendRequest(String serviceUrl, Map<String, Object> requestBody, String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (token != null && !token.isEmpty()) {
+            headers.setBearerAuth(token);
+        }
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+        return restTemplate.postForEntity(serviceUrl, entity, Map.class);
+    }
+
+    private String obtainNewAccessToken(DelegateExecution execution, String accessTokenKey, String refreshTokenKey) {
+        log.info("Yeni access token almak için keycloaka login olunuyor.");
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "password");
+        form.add("client_id", clientId);
+        form.add("username", username);
+        form.add("password", password);
+        form.add("client_secret", clientSecret);
+
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(form, headers);
+        ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, requestEntity, Map.class);
+        Map body = response.getBody();
+        if (body == null || !body.containsKey("access_token")) {
+            throw new RuntimeException("Yeni access token alınamadı.");
+        }
+        String newAccessToken = body.get("access_token").toString();
+        log.info("Yeni access token başarıyla alındı.");
+
+        redisTemplate.opsForValue().set(accessTokenKey, newAccessToken);
+
+        return newAccessToken;
+    }
+}

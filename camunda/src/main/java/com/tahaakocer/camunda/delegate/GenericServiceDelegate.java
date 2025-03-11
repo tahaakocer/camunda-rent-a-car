@@ -92,8 +92,9 @@ public class GenericServiceDelegate implements JavaDelegate {
             if (accessToken == null || accessToken.isEmpty()) {
                 log.info("Redis'te access token bulunamadı, yeni token alınıyor.");
                 accessToken = obtainNewAccessToken(execution, accessTokenKey, refreshTokenKey);
-            }
 
+            }
+            log.info("accessToken: ", accessToken);
             @SuppressWarnings("rawtypes")
             ResponseEntity<Map> responseEntity;
             try {

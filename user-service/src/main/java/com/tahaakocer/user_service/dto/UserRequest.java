@@ -11,9 +11,10 @@ import lombok.Setter;
 @Setter
 public class UserRequest
 {
-    private String TCNo;
+    private String tcNo;
     private String firstName;
     private String lastName;
+    private String birthYear;
     private String phoneNumber;
     private String email;
     private String password;

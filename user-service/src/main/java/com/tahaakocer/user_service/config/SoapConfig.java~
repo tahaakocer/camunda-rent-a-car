@@ -1,0 +1,35 @@
+package com.tahaakocer.user_service.config;
+
+import com.tahaakocer.user_service.Soap.MNHKPSPublicSoap;
+import com.tahaakocer.user_service.Soap.*; // Port arayüzü, sınıf adınız farklı olabilir
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import javax.xml.ws.BindingProvider;
+
+@Configuration
+public class SoapConfig {
+
+    @Bean
+    public MNHKPSPublicSoap mnhKPSPublicSoap() {
+        // Servis nesnesini oluşturuyoruz, URL'yi veriyoruz.
+        MNHKPSPublicSoap service = new MNHKPSPublicSoap("https://tckimlik.nvi.gov.tr/service/kpspublic.asmx");
+
+        // Port nesnesini alıyoruz
+        MNHKPSPublicSoapPort port = service.getMNHKPSPublicSoapPort();
+
+        // BindingProvider üzerinden endpoint ayarlarını yapıyoruz.
+        BindingProvider bindingProvider = (BindingProvider) port;
+        bindingProvider.getRequestContext().put(
+                BindingProvider.ENDPOINT_ADDRESS_PROPERTY,
+                "https://tckimlik.nvi.gov.tr/service/kpspublic.asmx"
+        );
+
+        // Eğer özel HTTP ayarlarına ihtiyaç varsa, bindingProvider üzerinden ek konfigürasyon yapılabilir.
+        // Örneğin, bazı durumlarda HTTP bağlantısının yazma modunda (doOutput) olduğundan emin olmak için
+        // ilgili HTTP transport ayarları yapılabilir. Ancak JAX-WS runtime bu ayarı otomatik olarak yapar.
+
+        // Artık port nesnesini döndürüyoruz, böylece serviste doğrudan TCKimlikNoDogrula gibi metodlara ulaşabilirsiniz.
+        return (MNHKPSPublicSoap) port;
+    }
+}

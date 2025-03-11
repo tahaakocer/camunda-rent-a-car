@@ -16,9 +16,10 @@ import java.util.UUID;
 public class UserDto {
 
     private UUID id;
-    private String TCNo;
+    private String tcNo;
     private String firstName;
     private String lastName;
+    private String birthYear;
     private String phoneNumber;
     private String email;
     private String keycloakUserId;

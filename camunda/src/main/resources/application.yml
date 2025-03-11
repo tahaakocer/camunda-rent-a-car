@@ -43,8 +43,8 @@ jwt:
 keycloak:
   client-id: ${CLIENT_ID}
   client-secret: ${CLIENT_SECRET}
-  username: ${USERNAME}
-  password: ${PASSWORD}
+  username: ${K_USERNAME}
+  password: ${K_PASSWORD}
   token:
     url: ${JWT_ISSUER_URI}/protocol/openid-connect/token
 server:

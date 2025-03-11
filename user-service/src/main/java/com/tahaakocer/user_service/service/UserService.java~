@@ -156,7 +156,7 @@ public class UserService {
     public EmailVerificationDto checkAndUpdateEmailVerificationStatus(String keycloakUserId) {
         RealmResource realmResource = keycloak.realm(realm);
         UserRepresentation userRep = realmResource.users().get(keycloakUserId).toRepresentation();
-
+        
         boolean isEmailVerified = userRep.isEmailVerified();
         if (isEmailVerified) {
             User user = h2UserRepository.findByKeycloakUserId(keycloakUserId)

@@ -30,13 +30,13 @@ public class UserController {
         this.userMapper = userMapper;
     }
 
-    @PostMapping("/register-h2")
-    public ResponseEntity<GeneralResponse> registerUserH2(@RequestBody UserRequest userRequest) {
+    @PostMapping("/register-mongo")
+    public ResponseEntity<GeneralResponse> registerUserMongo(@RequestBody UserRequest userRequest) {
         return ResponseEntity.ok(GeneralResponse.builder()
                 .code(200)
                 .message("User registered h2 successfully")
                 .data(this.userMapper.dtoToResponse(
-                            this.userService.registerUserH2(this.userMapper.requestToDto(userRequest))))
+                            this.userService.registerUserMongo(this.userMapper.requestToDto(userRequest))))
                 .build()
         );
     }

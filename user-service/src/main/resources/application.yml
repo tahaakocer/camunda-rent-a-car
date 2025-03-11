@@ -4,12 +4,14 @@ spring:
   config:
     import: "optional:file:.env[.properties]"
 
+  # MongoDB
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: rent-a-car-user
+  # PostgreSQL
   datasource:
-    h2:
-      url: jdbc:h2:file:./user-service-h2-database
-      driver-class-name: org.h2.Driver
-      username: sa
-      password: ""
     postgres:
       url: jdbc:postgresql://localhost:5432/rent-a-car-user
       driver-class-name: org.postgresql.Driver
@@ -17,21 +19,13 @@ spring:
       password: 123456
 
   jpa:
-    h2:
-      database-platform: org.hibernate.dialect.H2Dialect
-      show-sql: true
-      hibernate:
-        ddl-auto: update
     postgres:
       database-platform: org.hibernate.dialect.PostgreSQLDialect
       show-sql: true
       hibernate:
         ddl-auto: update
 
-  h2:
-    console:
-      enabled: true
-
+  # Security & Keycloak Ayarları (değişmeden kalıyor)
   security:
     oauth2:
       resourceserver:
@@ -56,3 +50,7 @@ keycloak:
 
 server:
   port: 8282
+logging:
+  level:
+    org.springframework.data.mongodb: DEBUG
+    com.mongodb: DEBUG

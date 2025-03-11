@@ -1,0 +1,60 @@
+package com.tahaakocer.user_service;
+
+import com.tahaakocer.user_service.service.UserService;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.representations.idm.RealmRepresentation;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+public class KeycloakServiceTest {
+
+    @Mock
+    private Keycloak keycloak;
+
+    @Mock
+    private RealmResource realmResource;
+
+    // Assuming your class under test is KeycloakService
+    @InjectMocks
+    private UserService keycloakService;
+
+    // Setup a sample realm name; ensure this matches the one used in your service.
+    private final String realm = "testRealm";
+
+    @Test
+    public void testKeycloakConnectionSuccess() {
+        // Arrange: simulate successful connection
+        when(keycloak.realm(realm)).thenReturn(realmResource);
+        // Assume a valid representation is returned
+        when(realmResource.toRepresentation()).thenReturn(new RealmRepresentation());
+
+        // Act: call the method under test
+        keycloakService.testKeycloakConnection();
+
+        // Assert: verify that the methods were called as expected
+        verify(keycloak, times(1)).realm(realm);
+        verify(realmResource, times(1)).toRepresentation();
+        // Optionally, verify logging behavior if you have a way to capture logs.
+    }
+
+    @Test
+    public void testKeycloakConnectionFailure() {
+        // Arrange: simulate an exception when calling toRepresentation()
+        when(keycloak.realm(realm)).thenReturn(realmResource);
+        when(realmResource.toRepresentation()).thenThrow(new RuntimeException("Simulated exception"));
+
+        // Act: call the method; it should catch the exception and log an error.
+        keycloakService.testKeycloakConnection();
+
+        // Assert: verify that the exception path is executed
+        verify(keycloak, times(1)).realm(realm);
+        verify(realmResource, times(1)).toRepresentation();
+        // Optionally, verify error logging if you have a log appender in place.
+    }
+}

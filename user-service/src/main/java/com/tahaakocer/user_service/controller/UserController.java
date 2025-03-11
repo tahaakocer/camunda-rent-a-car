@@ -34,7 +34,7 @@ public class UserController {
     public ResponseEntity<GeneralResponse> registerUserMongo(@RequestBody UserRequest userRequest) {
         return ResponseEntity.ok(GeneralResponse.builder()
                 .code(200)
-                .message("User registered h2 successfully")
+                .message("User registered mongodb successfully")
                 .data(this.userMapper.dtoToResponse(
                             this.userService.registerUserMongo(this.userMapper.requestToDto(userRequest))))
                 .build()

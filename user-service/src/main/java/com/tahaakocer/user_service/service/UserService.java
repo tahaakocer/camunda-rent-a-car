@@ -50,12 +50,12 @@ public class UserService {
     @Transactional
     public UserDto registerUserMongo(UserDto userDto) {
         // MongoDB'de TC No kontrolü
-        boolean userExistsInMongo = mongoUserRepository.existsByTCNo(userDto.getTcNo());
+        boolean userExistsInMongo = mongoUserRepository.existsByTcNo(userDto.getTcNo());
+
         if (userExistsInMongo) {
             log.error("UserService - registerUser - Kullanıcı zaten kayıtlı (MongoDB)");
-            throw new GeneralException("Kullanıcı zaten kayıtlı");
+            throw new GeneralException("Kullanıcı zaten kayıtlı (MongoDB)");
         }
-
 
             String keycloakUserId = createKeycloakUser(
                     keycloak,
@@ -65,11 +65,11 @@ public class UserService {
                     userDto.getPassword()
             );
             assignClientRoleToUser(keycloak, keycloakUserId, "user");
-            User user = userMapper.dtoToUser(userDto);
+            User user = userMapper.dtoToMongoUser(userDto);
             user.setKeycloakUserId(keycloakUserId);
             user.setStatus(UserStatus.INACTIVE);
             try {
-                UserDto savedUserDto = userMapper.userToDto(mongoUserRepository.save(user));
+                UserDto savedUserDto = userMapper.mongoUserToDto(mongoUserRepository.save(user));
                 log.info("UserService - registerUser - Kullanıcı kaydedildi");
                 return savedUserDto;
 
@@ -83,14 +83,14 @@ public class UserService {
     @Transactional
     public UserDto registerUserPostgres(UserDto userDto) {
         // Bu kısım Postgres veri kaynağına ait işlemleri yürütüyor.
-        Boolean userExists = this.postgresUserRepository.existsByTCNo(userDto.getEmail());
+        Boolean userExists = this.postgresUserRepository.existsByTcNo(userDto.getEmail());
         if (userExists != null) {
             log.error("UserService - registerUser - Kullanıcı zaten kayıtlı");
             throw new GeneralException("Kullanıcı zaten kayıtlı");
         }
         try {
-            User user = userMapper.dtoToUser(userDto);
-            return userMapper.userToDto(user);
+            com.tahaakocer.user_service.model.postgres.User user = userMapper.dtoToPostgresUser(userDto);
+            return userMapper.postgresUserToDto(user);
         } catch (Exception e) {
             log.error("UserService - registerUser - Kullanıcı kaydı sırasında hata oluştu", e);
             throw new GeneralException("Kullanıcı postgres kaydı sırasında hata oluştu", e);

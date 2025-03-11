@@ -15,7 +15,7 @@ import java.util.UUID;
 @Builder
 public class UserDto {
 
-    private UUID id;
+    private String id;
     private String tcNo;
     private String firstName;
     private String lastName;

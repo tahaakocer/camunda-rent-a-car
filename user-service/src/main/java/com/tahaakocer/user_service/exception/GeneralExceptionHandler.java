@@ -14,13 +14,24 @@ public class GeneralExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GeneralExceptionHandler.class);
 
     @ExceptionHandler(GeneralException.class)
-    public ResponseEntity<GeneralResponse> handleStartProcessException(GeneralException ex) {
+    public ResponseEntity<GeneralResponse> handleGeneralException(GeneralException ex) {
+        HttpStatus status = ex.getHttpStatus() != null ? ex.getHttpStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+        GeneralResponse errorResponse = GeneralResponse.builder()
+                .code(status.value())
+                .message(ex.getMessage())
+                .build();
+        log.error("Hata: {} - HTTP Kodu: {}", ex.getMessage(), status.value(), ex);
+        return new ResponseEntity<>(errorResponse, status);
+    }
+
+    // Diğer exception türleri için generic bir handler (isteğe bağlı)
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<GeneralResponse> handleAllExceptions(Exception ex) {
         GeneralResponse errorResponse = GeneralResponse.builder()
                 .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message(ex.getMessage())
-                .data(null)
+                .message("Beklenmeyen bir hata oluştu: " + ex.getMessage())
                 .build();
-        log.error("{}:{}", errorResponse.getMessage(), ex.getMessage());
+        log.error("Beklenmeyen hata: {}", ex.getMessage(), ex);
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

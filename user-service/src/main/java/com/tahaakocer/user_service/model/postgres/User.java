@@ -18,7 +18,6 @@ import java.util.UUID;
 @Builder
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)
@@ -30,7 +29,7 @@ public class User {
     private String phoneNumber;
 
     @Column(unique = true, nullable = false)
-    private String TCNo;
+    private String tcNo;
 
     @Column(unique = true, nullable = false)
     private String email;

@@ -12,5 +12,5 @@ public interface PostgresUserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByKeycloakUserId(String keycloakUserId);
     Optional<User> findByEmail(String email);
 
-    Boolean existsByTCNo(String tcNo);
+    Boolean existsByTcNo(String tcNo);
 }

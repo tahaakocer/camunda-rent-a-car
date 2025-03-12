@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="de" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <!--<meta http-equiv="refresh" content="30">  -->
+    <link type="text/css" rel="stylesheet" href="viewer.css" />
+    <style type="text/css">
+        .djs-connection>.djs-visual> :nth-child(1) {
+            stroke: #BB163F
+                /* red */
+            !important;
+        }
+
+        .djs-container .highlight .djs-visual>:nth-child(1) {
+            fill: #93f23a !important;
+            animation: blinker 1s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        .modalView {
+            width: 900px;
+        }
+
+        .masonry {
+            width: 320px;
+
+            margin: 0 auto;
+        }
+
+        .tabs {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            overflow: hidden;
+            border-bottom: 1px solid #999;
+            min-width: 500px;
+        }
+
+        .tabs li {
+            float: left;
+            border: 0px solid #999;
+            border-bottom: none;
+            background: White;
+            height: 35px;
+        }
+
+        .tabs li a {
+            display: block;
+            padding: 8px 15px;
+            font-size: 15px;
+            color: #000;
+            height: 35px;
+            text-decoration: none;
+        }
+
+        .tabs li a:hover {
+            background: #ccc;
+            height: 35px;
+        }
+
+        .tabs li.active,
+        .tabs li.active a:hover {
+            font-weight: bold;
+            background: Orange;
+            height: 35px;
+        }
+
+        .tab_container {
+            border: 0px solid #999;
+            border-top: none;
+            background: #fff;
+            min-width: 600px;
+            max-height: 500px;
+            min-height: 300px;
+        }
+
+        .tab_content {
+            padding: 0px;
+            padding-left: 15px;
+            padding-right: 15px;
+            margin: 0px;
+            font-size: 16px;
+            min-width: 250px;
+            max-height: 300px;
+            overflow-y: scroll;
+        }
+
+        .djs-container[style] {
+            overflow: scroll !important;
+        }
+
+        .djs-overlay {
+            display: block !important;
+        }
+
+        .wrap {
+            max-width: 200px;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+
+    </style>
+
+    <link rel="stylesheet" href="assets/jquery.modal.min.css" />
+    <link rel="stylesheet" type="text/css" href="assets/jquery.dataTables.css">
+    <link rel="stylesheet" href="viewer.css">
+    <script src="assets/jquery.min.js"></script>
+    <script src="assets/jquery.modal.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="assets/jquery.dataTables.js"></script>
+    <script src="bpmn-navigated-viewer.min.js"></script>
+    <script src="highlight.pack.js"></script>
+    <script src="assets/pinch-zoom.umd.js"></script>
+</head>
+
+<body>
+<h3 id="definitionName"></h3>
+<div id="diagramCanvas" style="height:100%;width: 100%;"></div>
+
+<div id="ex1" style="max-width:900px;max-height: 500px; display: none;">
+    <div style="width: 100%;">
+        <h2 style="margin-left:5px;">Step Information</h2>
+        <hr style="width: 770px;margin: 0px;" /><br />
+        <table>
+            <tr>
+                <td>
+                    <table>
+                        <tr>
+                            <td>
+                                    <span style="background-color:Orange;padding:3px;color:black;border-radius:5px;">
+                                        Step Name : </span> </td>
+                            <td>
+                                <span id="stepName"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    <table id="groupOrUserNameTable"  style="display: none;">
+                        <tr>
+                            <td>
+                                <span style="background-color:Orange;padding:3px;color:black;border-radius:5px;" id="groupOrUserNameKey"></span>
+                            </td>
+                            <td>
+                                <span  id="groupOrUserNameValue"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <table>
+                        <tr>
+                            <td>
+                                 <span style="background-color:Orange;padding:3px;color:black;border-radius:5px;">Service Address : </span>
+                            </td>
+                            <td>
+                                <span id="serviceAddress" style="display: block;
+    width: 320px;
+    overflow: auto;
+    word-break: normal;"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+
+                <td>
+                    <table id="createDateTable" style="display: none;">
+                        <tr>
+                            <td>
+                                <span style="background-color:Orange;padding:3px;color:black;border-radius:5px;" id="createDateKey"> </span> </td>
+                            <td>
+                                <span id="createDateValue"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <table id="userMailTable"  style="display: none;">
+                        <tr>
+                            <td>
+                                <span style="background-color:Orange;padding:3px;color:black;border-radius:5px;" id="userMailKey"></span></span>
+                            </td>
+                            <td class="wrap">
+                                <span  id="userMailValue"></span>
+                            </td>
+                        </tr>
+                    </table>
+                    <table id="groupMailTable"  style="display: none;">
+                        <tr>
+                            <td>
+                                <span style="background-color:Orange;padding:3px;color:black;border-radius:5px;" id="groupMailKey"></span></span>
+                            </td>
+                            <td class="wrap">
+                                <span  id="groupMailValue"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <table id="eventDateTable"  style="display: none;">
+                        <tr>
+                            <td>
+                                <span style="background-color:Orange;padding:3px;color:black;border-radius:5px;" id="eventDateKey"></span></span>
+                            </td>
+                            <td class="wrap">
+                                <span  id="eventDateValue"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    <table id="completeDateTable"  style="display: none;">
+                        <tr>
+                            <td>
+                                <span style="background-color:Orange;padding:3px;color:black;border-radius:5px;" id="completeDateKey"></span></span>
+                            </td>
+                            <td class="wrap">
+                                <span  id="completeDateValue"></span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        <table class="transactions-request-response">
+            <tr>
+                <td style="vertical-align:top;">
+                    <table id="table_id" class="display">
+                    </table>
+                </td>
+                <td style="vertical-align:top;">
+                    <div class="masonry">
+                        <ul class="tabs">
+                            <li><a href="#tab1">Request</a></li>
+                            <li><a href="#tab2">Response</a></li>
+                        </ul>
+                        <div class="tab_container">
+
+                            <div id="tab1" class="tab_content">
+                                <pre class="xml" id="tab1-description">
+                                </pre>
+                            </div>
+
+                            <div id="tab2" class="tab_content">
+                                <pre class="xml" id="tab2-description">
+                                </pre>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<script>
+    function getParameterByName(name) {
+        var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+        return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+    }
+
+    var responseGlobal = '';
+    var zoomVal = 0;
+    var TOKEN = getToken();//getParameterByName('token');
+    var superProcessInstanceId = null;
+    var monthNames = [
+        "January", "February", "March", "April", "May", "June", "July",
+        "August", "September", "October", "November", "December"
+    ];
+    var dayOfWeekNames = [
+        "Sunday", "Monday", "Tuesday",
+        "Wednesday", "Thursday", "Friday", "Saturday"
+    ];
+    var camundaBasicAuthHeaders = {
+        'Authorization': 'Basic b3JkZXJSZXF1ZXN0Om9yZGVyUmVxdWVzdA=='
+    };
+
+    (function ($) {
+        var svgEl = document.querySelectorAll('#diagramCanvas')[0];
+        let minScale = 1;
+        let maxScale = 4;
+
+        var restAccess = 'http://localhost:8181/engine-rest';
+        //var restAccess = 'http://camunda.node1.pia-team.com/rest';
+        //var restAccess = getBaseUrl()+"/rest";
+        var restAccess = getHostName(location.hostname);
+        var processInstanceId = getParameterByName('processInstanceId');
+        var taskId = getParameterByName('taskId');
+
+        var BpmnViewer = window.BpmnJS, $ = window.jQuery;
+        var viewer = new BpmnViewer({ container: '#diagramCanvas', width: '100%', height: '100%' });
+
+        viewer.on('import.done', function(event) {
+            console.log("import done");
+            var error = event.error;
+            var warnings = event.warnings;
+
+            if (error) {
+                return console.error('could not import BPMN 2.0 diagram', error);
+            }
+
+        });
+
+        var canvas = viewer.get('canvas');
+        // canvas.zoom('fit-viewport');
+
+        var container = $('#js-drop-zone');
+
+        if (processInstanceId){
+            $.ajax({
+                url: restAccess + '/history/process-instance/' + processInstanceId,
+                headers: camundaBasicAuthHeaders
+            }).done(function (pi) {
+                superProcessInstanceId = pi.superProcessInstanceId;
+                if(pi && pi.processDefinitionName){
+                    $('#definitionName').html(pi.processDefinitionName);
+                }
+                $.ajax({
+                    url: restAccess + '/process-definition/' + pi.processDefinitionId + '/xml',
+                    headers: camundaBasicAuthHeaders
+                }).done(function (data) {
+                    viewer.importXML(data.bpmn20Xml, function (err) {
+                        if (err) {
+                            console.log('error rendering', err);
+                        } else {
+
+                            var canvas = viewer.get('canvas');
+                            var overlays = viewer.get('overlays');
+
+                            container.removeClass('with-error').addClass('with-diagram');
+                            canvas.zoom('fit-viewport');
+
+                            $.ajax({
+                                url: restAccess + '/process-instance/' + processInstanceId + '/activity-instances/',
+                                headers: camundaBasicAuthHeaders
+                            }).done(function (actInstTree) {
+                                addMarkerForActivities(viewer, canvas, actInstTree);
+                            });
+
+                            $.ajax({
+                                url: restAccess + '/history/activity-instance/?processInstanceId=' + processInstanceId,
+                                headers: camundaBasicAuthHeaders
+                            }).done(function (actInstList) {
+                                addHistoryInfoOverlay(viewer, overlays, actInstList);
+                            });
+                        }
+                    });
+                });
+            });
+        }
+
+        $('.tab_content').hide();
+        $('.tab_content:first').show();
+        $('.tabs li:first').addClass('active');
+        $('.tabs li').click(function (event) {
+            $('.tabs li').removeClass('active');
+            $(this).addClass('active');
+            $('.tab_content').hide();
+
+            var selectTab = $(this).find('a').attr("href");
+
+            $(selectTab).fadeIn();
+        });
+
+        $('body').on('click', '#table_id tr', function () {
+            $('#table_id').find('tr.selected').removeClass('selected');
+            $(this).addClass('selected');
+            setRequestResponse($(this).data('id'));
+        });
+
+        var table = $('#table_id').DataTable({
+            paging: false,
+            searching: false,
+            order: [[0, 'desc']],
+            select: {
+                items: 'row'
+            },
+            scrollY: 200
+        });
+
+
+
+        $('pre code').each(function (i, block) {
+            hljs.highlightBlock(block);
+        });
+
+
+
+    }(jQuery))
+
+    function getHostName(hostName) {
+        var restAccessUrl = '';
+        switch (hostName) {
+            case "localhost":
+                restAccessUrl = 'http://localhost:8080/engine-rest';
+                break;
+            case "camunda-next-vfnet.vndev.vodafone.local":
+                restAccessUrl = 'http://camunda-next-vfnet.vndev.vodafone.local/rest';
+                break;
+            case "camunda.next.vodafone.net.tr":
+                restAccessUrl = 'https://camunda.next.vodafone.net.tr/rest';
+                break;
+            case "camunda-test-next-vfnet.vndev.vodafone.local":
+                restAccessUrl = 'http://camunda-test-next-vfnet.vndev.vodafone.local/rest';
+                break;
+            case "camunda-test-next-vfnet.cloudvndev.vodafone.local":
+                restAccessUrl = 'http://camunda-test-next-vfnet.cloudvndev.vodafone.local/rest';
+                break;
+            case "camunda-prp-next-vfnet.vndev.vodafone.local":
+                restAccessUrl = 'http://camunda-prp-next-vfnet.vndev.vodafone.local/rest';
+                break;
+            case "camunda-prp-next-vfnet.cloudvndev.vodafone.local":
+                restAccessUrl = 'http://camunda-prp-next-vfnet.cloudvndev.vodafone.local/rest';
+                break;
+            default:
+                break;
+        }
+        restAccessUrl = 'http://localhost:8181/engine-rest';
+        return restAccessUrl;
+    }
+
+    function getHostNameForLogService(hostName) {
+        var restAccessUrl = '';
+        switch (hostName) {
+            case "localhost":
+                restAccessUrl = 'http://next-vfnet.vndev.vodafone.local/rest';
+                break;
+            case "camunda-next-vfnet.vndev.vodafone.local":
+                restAccessUrl = 'http://next-vfnet.vndev.vodafone.local/rest';
+                break;
+            case "camunda.next.vodafone.net.tr":
+                restAccessUrl = 'https://api.next.vodafone.net.tr/rest';
+                break;
+            case "camunda-test-next-vfnet.vndev.vodafone.local":
+                restAccessUrl = 'http://test-next-vfnet.vndev.vodafone.local/rest';
+                break;
+            case "camunda-test-next-vfnet.cloudvndev.vodafone.local":
+                restAccessUrl = 'http://test-next-vfnet.cloudvndev.vodafone.local/rest';
+                break;
+            case "camunda-prp-next-vfnet.vndev.vodafone.local":
+                restAccessUrl = 'http://prp-next-vfnet.vndev.vodafone.local/rest';
+                break;
+            case "camunda-prp-next-vfnet.cloudvndev.vodafone.local":
+                restAccessUrl = 'http://prp-next-vfnet.cloudvndev.vodafone.local/rest';
+                break;
+            default:
+                break;
+        }
+
+        restAccessUrl = 'http://localhost:8181/engine-rest';
+        return restAccessUrl;
+    }
+    function getHostNameForRootApi(hostName) {
+        var restAccessUrl = '';
+        switch (hostName) {
+            case "localhost":
+                restAccessUrl = 'http://next-vfnet.vndev.vodafone.local';
+                break;
+            case "camunda-next-vfnet.vndev.vodafone.local":
+                restAccessUrl = 'http://next-vfnet.vndev.vodafone.local';
+                break;
+            case "camunda.next.vodafone.net.tr":
+                restAccessUrl = 'https://api.next.vodafone.net.tr';
+                break;
+            case "camunda-test-next-vfnet.vndev.vodafone.local":
+                restAccessUrl = 'http://test-next-vfnet.vndev.vodafone.local';
+                break;
+            case "camunda-test-next-vfnet.cloudvndev.vodafone.local":
+                restAccessUrl = 'http://test-next-vfnet.cloudvndev.vodafone.local';
+                break;
+            case "camunda-prp-next-vfnet.vndev.vodafone.local":
+                restAccessUrl = 'http://prp-next-vfnet.vndev.vodafone.local';
+                break;
+            case "camunda-prp-next-vfnet.cloudvndev.vodafone.local":
+                restAccessUrl = 'http://prp-next-vfnet.cloudvndev.vodafone.local';
+                break;
+            default:
+                break;
+        }
+
+        restAccessUrl = 'http://localhost:8181';
+        return restAccessUrl;
+    }
+
+    function getBaseUrl() {
+        var pathparts = location.pathname.split('/');
+        if (location.host == 'localhost') {
+            var url = location.origin + '/' + pathparts[1].trim('/') + '/'; // http://localhost/myproject/
+        } else {
+            var url = location.origin; // http://stackoverflow.com
+        }
+        return url;
+    }
+
+    function addMarkerForActivities(viewer, canvas, actInstTree) {
+        if (actInstTree.childTransitionInstances.length == 0 && actInstTree.childActivityInstances.length == 0) {
+            canvas.addMarker(actInstTree.activityId, 'highlight');
+            focusActiveActivity(viewer, canvas, actInstTree.activityId);
+        } else {
+            for (index = 0; index < actInstTree.childTransitionInstances.length; ++index) {
+                canvas.addMarker(actInstTree.childTransitionInstances[index].activityId, 'highlight');
+                focusActiveActivity(viewer, canvas, actInstTree.childTransitionInstances[index].activityId);
+            }
+            const callActivities = actInstTree.childActivityInstances.filter(_ => _.activityType === 'callActivity');
+            if (callActivities && callActivities.length > 0) {
+                callActivities.forEach(item_ => {
+                    addMarkerForActivities(viewer, canvas, item_);
+                });
+            } else {
+                actInstTree.childActivityInstances.forEach(item_ => {
+                    addMarkerForActivities(viewer, canvas, item_);
+                });
+            }
+        }
+    }
+
+    function addHistoryInfoOverlay(viewer, overlays, actInstList) {
+
+        console.log(actInstList);
+        var activityIdLoopI = {};
+        for (index = 0; index < actInstList.length; ++index) {
+            var calledPiLink = '';
+            var finished = '';
+
+            indexOfUniqCharacter = actInstList[index].activityId.indexOf("#");
+            var activityId = 0;
+            if (indexOfUniqCharacter != -1){
+                activityId = actInstList[index].activityId.slice(0, indexOfUniqCharacter);
+            } else {
+                activityId = actInstList[index].activityId;
+            }
+
+            if (actInstList[index].endTime) {
+                finished = '<table><tr><td><img src="check.png" style="width:25px;height:25px;"></img> </td><td><button onclick="showHistory(\'' + activityId + '\',\'' + actInstList[index].processInstanceId + '\', \'' + actInstList[index].activityType + '\',\'' + actInstList[index].taskId + '\');" style="margin-top:-2px;margin-left:-2px;">i</button></td></tr></table>';
+            }else {
+
+                finished = '<table style="position:absolute; right:100%"><tr><td><button onclick="showHistory(\'' + activityId + '\',\'' + actInstList[index].processInstanceId + '\', \'' + actInstList[index].activityType + '\',\'' + actInstList[index].taskId + '\',);" style="margin-top:-2px;margin-left:-2px;">i</button></td></tr></table>';
+            }
+
+
+            if (actInstList[index].calledProcessInstanceId) {
+                calledPiLink = '<a href="viewer.html?processInstanceId=' + actInstList[index].calledProcessInstanceId + '"><img src="arrow.png" style="width:25px;height:25px;"></a>';
+            }
+
+            if (finished || calledPiLink) {
+                var exists = viewer.get('elementRegistry').get(activityId);
+
+                if(!activityIdLoopI.hasOwnProperty(activityId)){
+                    activityIdLoopI[activityId] = 0;
+                }
+                if (actInstList[index].activityType === 'callActivity') {
+                    ++activityIdLoopI[activityId];
+                }
+                // exists activityId
+                if(exists) {
+
+                    var top =  activityIdLoopI[activityId] > 1 ? (activityIdLoopI[activityId] - 1)  *  60 : -15;
+                    overlays.add(activityId, { position: { top:  top , right: 15 }, html: '<div>' + finished + calledPiLink + '</div>' });
+                } else {
+                    console.error("activityId mevcut değil: " + activityId);
+                }
+            }
+        }
+
+        const svgG = document.querySelectorAll('.djs-container svg')[0];
+        svgG.setAttribute('easypz', '');
+
+        var el = document.querySelector('div#diagramCanvas');
+        new PinchZoom.default(el, {});
+    }
+
+    function showHistory(elementId, elementStepId, activityType, taskId) {
+        console.log(elementId);
+        console.log(elementStepId);
+        console.log(activityType);
+        $('#stepName').text(elementId);
+        //alert( 'STEP: \n' + element + '\nREQUEST :\n<?xml version="1.0" encoding="UTF-8" standalone="yes"?><atom:feed xmlns:yheader="http://schemas.yahoo.com/ypost/jobsHeader/3.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:yjob="http://schemas.yahoo.com/ypost/jobs/3.0" xmlns:ycontrol="http://schemas.yahoo.com/ypost/control/1.0">    <yheader:Credential>        <yheader:Login>testjpapiats@yahoo.com</yheader:Login>        <yheader:Password>cdef1ab</yheader:Password>        <yheader:Version>3.0</yheader:Version>        <yheader:LicenseKey>b0ab1bfdd898b7588142e820a2af1a07</yheader:LicenseKey>    </yheader:Credential>    <!--Account ID. Required if the user is a member of multiple accounts -->    <atom:id>1-EVWGO</atom:id></atom:feed>\nRESPONSE :\n<?xml version="1.0" encoding="utf-8"?><Response>  <ResponseCode>0</ResponseCode>  <ResponseMessage>Login successful</ResponseMessage>  <Token>NTlEMTdFNjk3Qjg4NUJBNDA3MkJFOTI3NzJEMTdDNDU7bG9jYWxob3N0LmVnbGJwLmNvcnAueWFob28uY29tO0pVNWpzRGRhN3VhSS4yQVRqRi4wWE5jTWl0RHVVYzQyX3luYWd1TjIxaGx6U0lhTXN3LS07NjY2MzM1OzIzNDY3NTsxMjA5MDE2OTE5OzZCM1RBMVNudHdLbl9VdFFKMFEydWctLQ==</Token></Response>\n');
+        var restUrlLogService = getHostNameForLogService(location.hostname);
+        var restAccess = getHostName(location.hostname);
+        var rootApi = getHostNameForRootApi(location.hostname);
+        console.log(restUrlLogService);
+        $.get(restUrlLogService + '/log?itemProcessId=' + elementStepId + '&stepId=' + elementId, function (response) {
+            responseGlobal = response;
+            listDates();
+        }).fail(function () { });
+
+
+        $('#ex1').modal({
+            closeExisting: true, closeExisting: true,
+        }).on($.modal.OPEN, function (event, modal) {
+            $('.jquery-modal').css('zoom', zoomVal);
+            $('#createDateTable').hide();
+            $('#groupOrUserNameTable').hide();
+            $('#userMailTable').hide();
+            $('#groupMailTable').hide();
+            $('#eventDateTable').hide();
+            $('#completeDateTable').hide();
+        });
+
+        if(activityType==='exclusiveGateway' || activityType==='startEvent' || activityType==='scriptTask' || activityType==='callActivity' ) {
+            return false;
+        }  else if(activityType==='userTask' && taskId) {
+           // call
+            $.ajaxSetup({ headers:{ 'Authorization': "bearer " + TOKEN, } });
+
+            $.get(rootApi + '/orderrequests/getRecentTaskAssignmentInfo/' + elementStepId + '/' + taskId, function (response) {
+                fillGroupOrUserEventDate(response, 'getRecentTaskAssignmentInfo', 'Atanan Kişi/Group:', 'İlk Aktivite Zamanı: ', 'Atanan Kişi Maili: ', 'Atanan Grup Maili: ', 'Aktivite Zamanı(Update date): ', 'Aktivite Tamamlanma Zamanı: ');
+            }).fail(function () { });
+        } else {
+            console.log("superProcessInstanceId: " +superProcessInstanceId);
+
+            $.ajax({
+                url: restAccess + '/process-instance/' + elementStepId + '/variables/',
+                headers: camundaBasicAuthHeaders
+            }).done(function (responseVariables) {
+                console.log("OrderId: "+ responseVariables.OrderId.value);
+                getOrderRequestsMainOrSubProcessTaskInfo(rootApi, superProcessInstanceId, elementId, responseVariables.OrderId.value, responseVariables.OrderItemId.value);
+            }).fail(function () {
+                console.error("active process-instance variable error" );
+                // bitmis akis ise history den getir.
+                $.ajax({
+                    url: restAccess + '/history/variable-instance/?processInstanceId=' + elementStepId,
+                    headers: camundaBasicAuthHeaders
+                }).done(function (responseVariables) {
+                    var OrderId = responseVariables.find( item => item.name ==='OrderId');
+                    var OrderItemId = responseVariables.find( item => item.name ==='OrderItemId');
+                    console.log("OrderId: "+ OrderId.value);
+                    getOrderRequestsMainOrSubProcessTaskInfo(rootApi, superProcessInstanceId, elementId, OrderId.value, OrderItemId.value);
+                }).fail(function () {
+                    console.error("history process-instance variable error");
+                });
+            });
+        }
+    }
+
+
+    function getOrderRequestsMainOrSubProcessTaskInfo(rootApi, superProcessInstanceId, elementId, OrderId, OrderItemId) {
+        $.ajaxSetup({ headers:{ 'Authorization': "bearer " + TOKEN} });
+        if(superProcessInstanceId===null) {
+            // akış ana akış
+            console.log("OrderId: " + OrderId);
+            $.get(rootApi + '/orderrequests/getMainProcessServiceTaskInfo/' + OrderId + '/' + elementId, function (response) {
+                fillGroupOrUserEventDate(response, 'getSubProcessServiceTaskInfo', 'Atanan Kişi/Group:', 'İlk Aktivite Zamanı: ', 'Atanan Kişi Maili: ', 'Atanan Grup Maili: ', 'Aktivite Zamanı(Update date): ', 'Aktivite Tamamlanma Zamanı: ');
+            }).fail(function () { });
+
+        }else {
+            // akış alt akış
+            console.log("OrderItemId: " + OrderItemId);
+            $.get(rootApi + '/rest/orderrequest/orderitem/getSubProcessServiceTaskInfo/' + OrderItemId + '/' + elementId, function (response) {
+                fillGroupOrUserEventDate(response, 'getSubProcessServiceTaskInfo', 'Atanan Kişi/Group:', 'İlk Aktivite Zamanı: ', 'Atanan Kişi Maili: ', 'Atanan Grup Maili: ', 'Aktivite Zamanı(Update date): ', 'Aktivite Tamamlanma Zamanı: ');
+            }).fail(function () { });
+
+        }
+
+    }
+
+    function formatDate(date, patternStr){
+        if (!patternStr) {
+            patternStr = 'M/d/yyyy';
+        }
+        var day = date.getDate(),
+            month = date.getMonth(),
+            year = date.getFullYear(),
+            hour = date.getHours(),
+            minute = date.getMinutes(),
+            second = date.getSeconds(),
+            miliseconds = date.getMilliseconds(),
+            h = hour % 12,
+            hh = twoDigitPad(h),
+            HH = twoDigitPad(hour),
+            mm = twoDigitPad(minute),
+            ss = twoDigitPad(second),
+            aaa = hour < 12 ? 'AM' : 'PM',
+            EEEE = dayOfWeekNames[date.getDay()],
+            EEE = EEEE.substr(0, 3),
+            dd = twoDigitPad(day),
+            M = month + 1,
+            MM = twoDigitPad(M),
+            MMMM = monthNames[month],
+            MMM = MMMM.substr(0, 3),
+            yyyy = year + "",
+            yy = yyyy.substr(2, 2)
+        ;
+        // checks to see if month name will be used
+        patternStr = patternStr
+            .replace('hh', hh).replace('h', h)
+            .replace('HH', HH).replace('H', hour)
+            .replace('mm', mm).replace('m', minute)
+            .replace('ss', ss).replace('s', second)
+            .replace('S', miliseconds)
+            .replace('dd', dd).replace('d', day)
+
+            .replace('EEEE', EEEE).replace('EEE', EEE)
+            .replace('yyyy', yyyy)
+            .replace('yy', yy)
+            .replace('aaa', aaa);
+        if (patternStr.indexOf('MMM') > -1) {
+            patternStr = patternStr
+                .replace('MMMM', MMMM)
+                .replace('MMM', MMM);
+        }
+        else {
+            patternStr = patternStr
+                .replace('MM', MM)
+                .replace('M', M);
+        }
+        return patternStr;
+    }
+    function twoDigitPad(num) {
+        return num < 10 ? "0" + num : num;
+    }
+
+    function fillGroupOrUserEventDate(response, req,  groupOrUserNameKey, createDateKey, userMailKey, groupMailKey, eventDateKey, completeDateKey) {
+        console.log(req, 'req req req req req');
+        if(typeof groupOrUserNameKey === 'undefined') {
+           groupOrUserNameKey ='İlerleten Kullanıcı:';
+        }
+        if(typeof createDateKey === 'undefined') {
+            createDateKey ='İlerletme Zamanı: ';
+        }
+        if(response){
+            console.log(response, 'response');
+            console.log(response.createDate, 'create DATE VALUEE');
+            controlGroupAndUserMail(response, userMailKey, groupMailKey);
+            $('#createDateTable').show();
+            $('#groupOrUserNameTable').show();
+            $('#eventDateTable').show();
+            $('#completeDateTable').show();
+
+            $('#groupOrUserNameKey').text(groupOrUserNameKey);
+            $('#groupOrUserNameValue').text(response.groupOrUserName);
+            $('#createDateKey').text(createDateKey);
+            $('#createDateValue').text(formatOrDefault(response.createDate, 'dd.MM.yyyy HH:mm:ss'));
+
+            $('#eventDateKey').text(eventDateKey);
+            $('#eventDateValue').text(formatOrDefault(response.eventDate, 'dd.MM.yyyy HH:mm:ss'));
+            $('#completeDateKey').text(completeDateKey);
+            $('#completeDateValue').text(formatOrDefault(response.completeDate, 'dd.MM.yyyy HH:mm:ss'));
+
+        } else {
+            console.error("getRecentTaskAssignmentInfo response:" + req);
+        }
+    }
+    function formatOrDefault(dateValue, format) {
+        if (dateValue == null || dateValue == undefined) {
+            return '';
+        }else {
+            return formatDate(new Date(dateValue), format);
+        }
+    }
+    function controlGroupAndUserMail(response, userMailKey, groupMailKey) {
+
+        if(response.userMail != null && response.groupMail == null) {
+            $('#userMailTable').show();
+            $('#userMailKey').text(userMailKey);
+            $('#userMailValue').text(response.userMail);
+        } else if (response.userMail == null && response.groupMail != null) {
+            $('#groupMailTable').show();
+            $('#groupMailKey').text(groupMailKey);
+            $('#groupMailValue').text(response.groupMail);
+        } else if (response.userMail != null && response.groupMail != null) {
+            $('#userMailTable').show();
+            $('#groupMailTable').show();
+            $('#userMailKey').text(userMailKey);
+            $('#userMailValue').text(response.userMail);
+            $('#groupMailKey').text(groupMailKey);
+            $('#groupMailValue').text(response.groupMail);
+        }
+    }
+
+    function listDates() {
+        var html = '<thead>' +
+            '<tr>' +
+            '<th>Transactions</th>' +
+            '</tr>' +
+            '</thead>';
+        if (responseGlobal.length > 0) {
+            $('#serviceAddress').text(responseGlobal[responseGlobal.length - 1].formatted_message.serviceAddress);
+        } else {
+            $('#serviceAddress').text("Servis adresi mevcut değil");
+        }
+        for (var i = 0; i < responseGlobal.length; i++) {
+            if (responseGlobal[i].formatted_message != null && responseGlobal[i].formatted_message.request != null) {
+                responseGlobal[i].formatted_message.request = responseGlobal[i].formatted_message.request.replace(/&lt;/g, '<').replace(/>/g, '> ');
+            }
+            if (responseGlobal[i].formatted_message != null && responseGlobal[i].formatted_message.response != null) {
+                responseGlobal[i].formatted_message.response = responseGlobal[i].formatted_message.response.replace(/&lt;/g, '<').replace(/>/g, '> ');
+            }
+        }
+
+        html += '<tbody>';
+
+        for (var i = 0; i < responseGlobal.length; i++) {
+            let date = new Date(responseGlobal[i].timestmp);
+            html += '<tr ' + `${i == 0 ? 'class="selected"' : ''}` + 'data-id=' + responseGlobal[i].event_id + '>';
+            let formatted_date = date.getDate() + "-" + (date.getMonth() + 1) + "-" + date.getFullYear() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds()
+            html += '<td>' + formatted_date + '</td>';
+            html += '</tr>';
+        }
+        html += '</tbody>';
+
+        if (responseGlobal.length > 0
+            && responseGlobal[0].formatted_message != null
+            && responseGlobal[0].formatted_message.request != null) {
+            try{
+                $('#tab1-description').text(JSON.stringify(JSON.parse(responseGlobal[0].formatted_message.request), null, 2));
+            }catch{
+                try{
+                    $('#tab1-description').text(formatXml(responseGlobal[0].formatted_message.request));
+                }catch{
+                    $('#tab1-description').text(responseGlobal[0].formatted_message.request);
+                }
+            }
+        } else {
+            $('#tab1-description').text("Log Mevcut Değil");
+        }
+        if (responseGlobal.length > 0
+            && responseGlobal[0].formatted_message != null
+            && responseGlobal[0].formatted_message.response != null) {
+            try{
+                $('#tab2-description').text(JSON.stringify(JSON.parse(responseGlobal[0].formatted_message.response), null, 2));
+            }catch{
+                try{
+                    $('#tab2-description').text(formatXml(responseGlobal[0].formatted_message.response));
+                }catch{
+                    $('#tab2-description').text(responseGlobal[0].formatted_message.response);
+                }
+            }
+        } else {
+            $('#tab2-description').text("Log Mevcut Değil");
+        }
+
+        document.getElementById('table_id').innerHTML = html;
+    }
+
+    function setRequestResponse(eventId) {
+        for (var i = 0; i < responseGlobal.length; i++) {
+            if (responseGlobal[i].event_id == eventId) {
+                var requestRaw = responseGlobal[i].formatted_message.request;
+                var responseRaw = responseGlobal[i].formatted_message.response;
+                try{
+                    $('#tab1-description').text(JSON.stringify(JSON.parse(requestRaw), null, 2));
+                }catch{
+                    try{
+                        $('#tab1-description').text(formatXml(requestRaw));
+                    }catch{
+                        $('#tab1-description').text(requestRaw);
+                    }
+                }
+                try{
+                    $('#tab2-description').text(JSON.stringify(JSON.parse(responseRaw), null, 2));
+                }catch{
+                    try{
+                        $('#tab2-description').text(formatXml(responseRaw));
+                    }catch{
+                        $('#tab2-description').text(responseRaw);
+                    }
+                }
+            }
+        }
+    }
+
+    function formatXml(xml) {
+        var formatted = '', indent= '';
+        var tab = '  ';
+        xml.split(/>\s*</).forEach(function(node) {
+            if (node.match( /^\/\w/ )) indent = indent.substring(tab.length);
+            formatted += indent + '<' + node + '>\r\n';
+            if (node.match( /^<?\w[^>]*[^\/]$/ )) indent += tab;
+        });
+        return formatted.substring(1, formatted.length-3);
+    }
+
+    function focusActiveActivity(viewer, canvas, activityId){
+        setTimeout(function () {
+            console.log('activityId: '+ activityId );
+            var viewbox = canvas.viewbox();
+            var box = viewer.get('elementRegistry').get(activityId);
+            if (!excludedFocus(box)) {
+                var newViewbox = {
+                    x: (box.x + box.width/2) - viewbox.outer.width/2    ,
+                    y: (box.y + box.height/2) - viewbox.outer.height/2,
+                    width: viewbox.outer.width,
+                    height: viewbox.outer.height
+                };
+                canvas.viewbox(newViewbox);
+                canvas.zoom(1);
+            }
+        }, 2500);
+    }
+
+    function excludedFocus(box){
+       if (box.businessObject && box.businessObject.eventDefinitions) {
+            for (var i = 0; i < box.businessObject.eventDefinitions.length; ++i) {
+               if ( box.businessObject.eventDefinitions[i]["$type"] === 'bpmn:ConditionalEventDefinition' &&
+                   box.businessObject.eventDefinitions[i]["condition"]["body"].includes("ROLLBACK")) {
+                   return true;
+               }
+            }
+       }
+       return false;
+    }
+
+    function getToken(){
+        $.get(getHostName(location.hostname).replace('/rest', '') + '/token', function (token) {
+            TOKEN=token;
+        });
+    }
+
+</script>
+
+</body>
+
+</html>

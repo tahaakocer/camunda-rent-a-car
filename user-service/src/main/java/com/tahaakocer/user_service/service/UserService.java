@@ -118,7 +118,7 @@ public class UserService {
         }
 
         UserRepresentation user = new UserRepresentation();
-        user.setEnabled(false);
+        user.setEnabled(true);
         user.setUsername(email);
         user.setFirstName(firstName);
         user.setLastName(lastName);

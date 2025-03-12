@@ -89,8 +89,8 @@ public class UserService {
             throw new GeneralException("Kullanıcı zaten kayıtlı");
         }
         try {
-            User user = userMapper.dtoToMongoUser(userDto);
-            return userMapper.mongoUserToDto(user);
+            com.tahaakocer.user_service.model.postgres.User user = userMapper.dtoToPostgresUser(userDto);
+            return userMapper.postgresUserToDto(user);
         } catch (Exception e) {
             log.error("UserService - registerUser - Kullanıcı kaydı sırasında hata oluştu", e);
             throw new GeneralException("Kullanıcı postgres kaydı sırasında hata oluştu", e);
@@ -118,10 +118,10 @@ public class UserService {
         }
 
         UserRepresentation user = new UserRepresentation();
-        user.setEnabled(false);
+        user.setEnabled(true);
         user.setUsername(email);
         user.setFirstName(firstName);
-        user.setLastName(lastName);
+        user.setLastName(lastName);s
         user.setEmail(email);
         user.setEmailVerified(false);
 

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>BPMN Viewer</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    /* Kapsayıcı: Üstte diyagram, altta değişken listesi */
+    #viewer-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    /* Diyagram alanı */
+    #canvas {
+      flex-grow: 1;
+      border: 1px solid #ccc;
+      overflow: auto;
+    }
+    /* Splitter */
+    #splitter {
+      height: 5px;
+      background: #ccc;
+      cursor: row-resize;
+    }
+    /* Değişken listesi */
+    #variable-container {
+      height: 200px; /* Başlangıç yüksekliği */
+      width: 100%;
+      overflow: auto;
+      border-top: 1px solid #ccc;
+    }
+    /* Diğer stil ayarları */
+    .active-step .djs-visual > :nth-child(1) {
+      fill: rgba(0, 0, 255, 0.3) !important;
+    }
+    .completed-task .djs-visual > :nth-child(1) {
+      fill: rgba(128, 128, 128, 0.3) !important;
+    }
+    .completed-overlay {
+      background-color: #52b415;
+      color: white;
+      padding: 2px 5px;
+      border-radius: 5px;
+      font-size: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+    .clickable {
+      color: blue;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    /* Modal (pop-up) stilleri */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 500px;
+      overflow: auto;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+    }
+  </style>
+  <script src="https://unpkg.com/bpmn-js@13.2.2/dist/bpmn-navigated-viewer.production.min.js"></script>
+</head>
+<body>
+  <h2 id="processName"></h2>
+  <div id="viewer-container">
+    <div id="canvas"></div>
+    <div id="splitter"></div>
+    <div id="variable-container">
+      <input type="text" id="search-bar" placeholder="Search variables..." style="width: 100%; padding: 8px; box-sizing: border-box;" />
+      <div id="variable-list">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Value</th>
+              <th>Create Time</th>
+            </tr>
+          </thead>
+          <tbody id="variable-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Pop-up -->
+  <div id="valueModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <pre id="modalValue"></pre>
+    </div>
+  </div>
+
+  <script th:inline="javascript">
+    /*<![CDATA[*/
+    let TOKEN = null;
+    const viewer = new BpmnJS({
+      container: '#canvas'
+    });
+    const processInstanceId = /*[[${processInstanceId}]]*/ null;
+
+    async function fetchAccessToken() {
+      try {
+        const response = await fetch('/api/token', { method: 'GET' });
+        if (!response.ok) throw new Error('Failed to fetch access token from backend');
+        const data = await response.json();
+        TOKEN = data.access_token;
+        console.log('Access token fetched successfully');
+      } catch (err) {
+        console.error('Error fetching access token:', err);
+        throw err;
+      }
+    }
+
+    async function loadVariables() {
+      try {
+        const authHeaders = {
+          "Authorization": `Bearer ${TOKEN}`,
+          "Content-Type": "application/json"
+        };
+        const variableResponse = await fetch(`/engine-rest/history/variable-instance?processInstanceId=${processInstanceId}`, {
+          headers: authHeaders
+        });
+        if (!variableResponse.ok) throw new Error('Failed to fetch variables');
+        const variables = await variableResponse.json();
+        displayVariables(variables);
+        setupSearch(variables);
+      } catch (err) {
+        console.error('Error loading variables:', err);
+      }
+    }
+
+    function displayVariables(variables) {
+      const tbody = document.getElementById('variable-table-body');
+      tbody.innerHTML = '';
+      variables.forEach(variable => {
+        const row = document.createElement('tr');
+        let valueDisplay = '';
+        // Eğer tip String ise direkt değeri yazdır,
+        // Object ise tıklanabilir öğe oluştur.
+        if (variable.type === 'String') {
+          valueDisplay = variable.value;
+        } else if (variable.type === 'Object') {
+          valueDisplay = `<span class="clickable" data-type="${variable.type}" data-value='${JSON.stringify(variable.value)}'>View Object</span>`;
+        } else {
+          valueDisplay = variable.value;
+        }
+        row.innerHTML = `
+          <td>${variable.name}</td>
+          <td>${valueDisplay}</td>
+          <td>${variable.createTime}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      // Tıklanabilir öğelere olay dinleyicisi ekle
+      document.querySelectorAll('.clickable').forEach(element => {
+        element.addEventListener('click', showValuePopup);
+      });
+    }
+
+    function setupSearch(variables) {
+        const searchBar = document.getElementById('search-bar');
+        searchBar.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredVariables = variables.filter(variable => {
+                const nameMatch = variable.name.toLowerCase().includes(searchTerm);
+                const typeMatch = variable.type.toLowerCase().includes(searchTerm);
+                let valueMatch = false;
+                if (variable.type === 'Object' && typeof variable.value === 'object') {
+                    // Nesneyi string'e çevirerek arama
+                    valueMatch = JSON.stringify(variable.value).toLowerCase().includes(searchTerm);
+                } else {
+                    valueMatch = String(variable.value).toLowerCase().includes(searchTerm);
+                }
+                return nameMatch || typeMatch || valueMatch;
+            });
+            displayVariables(filteredVariables);
+        });
+    }
+    function showValuePopup(event) {
+      const type = event.target.getAttribute('data-type');
+      const value = event.target.getAttribute('data-value');
+      const modal = document.getElementById('valueModal');
+      const modalValue = document.getElementById('modalValue');
+      const closeBtn = document.getElementsByClassName('close')[0];
+
+      if (type === 'Object') {
+        modalValue.textContent = JSON.stringify(JSON.parse(value), null, 2);
+      } else {
+        modalValue.textContent = value;
+      }
+
+      modal.style.display = 'block';
+
+      closeBtn.onclick = () => {
+        modal.style.display = 'none';
+      };
+
+      window.onclick = (event) => {
+        if (event.target === modal) {
+          modal.style.display = 'none';
+        }
+      };
+    }
+
+    async function loadDiagram() {
+      try {
+        const baseUrl = '/engine-rest';
+        if (!TOKEN) await fetchAccessToken();
+
+        const authHeaders = {
+          "Authorization": `Bearer ${TOKEN}`,
+          "Content-Type": "application/json"
+        };
+
+        const instanceResponse = await fetch(`${baseUrl}/history/process-instance/${processInstanceId}`, {
+          headers: authHeaders
+        });
+        if (!instanceResponse.ok) throw new Error('Failed to fetch process instance');
+        const instance = await instanceResponse.json();
+        document.getElementById('processName').textContent = instance.processDefinitionName || 'Process';
+
+        const xmlResponse = await fetch(`${baseUrl}/process-definition/${instance.processDefinitionId}/xml`, {
+          headers: authHeaders
+        });
+        if (!xmlResponse.ok) throw new Error('Failed to fetch BPMN XML');
+        const xmlData = await xmlResponse.json();
+        await viewer.importXML(xmlData.bpmn20Xml);
+
+        const canvas = viewer.get('canvas');
+        canvas.zoom('fit-viewport');
+
+        let activeActivityIds = new Set();
+        const activityResponse = await fetch(`${baseUrl}/process-instance/${processInstanceId}/activity-instances`, {
+          headers: authHeaders
+        });
+        if (activityResponse.ok) {
+          const activityData = await activityResponse.json();
+          if (activityData) {
+            collectActiveSteps(activeActivityIds, activityData);
+            markActiveSteps(canvas, activityData);
+          }
+        } else {
+          console.warn('No active instances found or process completed');
+        }
+
+        const historyResponse = await fetch(`${baseUrl}/history/activity-instance?processInstanceId=${processInstanceId}`, {
+          headers: authHeaders
+        });
+        if (!historyResponse.ok) throw new Error('Failed to fetch history activities');
+        const historyData = await historyResponse.json();
+        if (historyData && historyData.length > 0) {
+          markCompletedTasks(canvas, viewer.get('overlays'), historyData, activeActivityIds);
+        }
+
+        await loadVariables();
+      } catch (err) {
+        console.error('Error loading diagram:', err);
+      }
+    }
+
+    function collectActiveSteps(activeSet, activityData) {
+      const collectRecursive = (node) => {
+        if (node && node.activityId && !node.endTime) {
+          activeSet.add(node.activityId);
+        }
+        if (node.childActivityInstances) {
+          node.childActivityInstances.forEach(collectRecursive);
+        }
+        if (node.childTransitionInstances) {
+          node.childTransitionInstances.forEach(collectRecursive);
+        }
+      };
+      collectRecursive(activityData);
+    }
+
+    function markActiveSteps(canvas, activityData) {
+      const markRecursive = (node) => {
+        if (node && node.activityId && !node.endTime) {
+          try {
+            canvas.addMarker(node.activityId, 'active-step');
+          } catch (e) {
+            console.warn(`Failed to mark active step for activityId: ${node.activityId}`, e);
+          }
+        }
+        if (node.childActivityInstances) {
+          node.childActivityInstances.forEach(markRecursive);
+        }
+        if (node.childTransitionInstances) {
+          node.childTransitionInstances.forEach(markRecursive);
+        }
+      };
+      markRecursive(activityData);
+    }
+
+    function markCompletedTasks(canvas, overlays, activities, activeActivityIds) {
+      activities.forEach(activity => {
+        if (activity && activity.endTime && activity.activityId) {
+          if (!activeActivityIds.has(activity.activityId)) {
+            try {
+              canvas.addMarker(activity.activityId, 'completed-task');
+              overlays.add(activity.activityId, {
+                position: { top: -15, right: 15 },
+                html: '<span class="completed-overlay">✓</span>'
+              });
+            } catch (e) {
+              console.warn(`Failed to mark completed task for activityId: ${activity.activityId}`, e);
+            }
+          }
+        }
+      });
+    }
+
+    // Splitter için mouse event'lerini ekleyelim
+    (function() {
+      let isDragging = false;
+      const splitter = document.getElementById('splitter');
+      const variableContainer = document.getElementById('variable-container');
+      const viewerContainer = document.getElementById('viewer-container');
+
+      splitter.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        document.body.style.cursor = 'row-resize';
+      });
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        // viewer-container'ın sınırlarını alarak yeni yükseklik hesaplanır
+        const containerRect = viewerContainer.getBoundingClientRect();
+        let newHeight = containerRect.bottom - e.clientY;
+        // Minimum ve maksimum yükseklik sınırları
+        if (newHeight < 100) newHeight = 100;
+        if (newHeight > containerRect.height - 100) newHeight = containerRect.height - 100;
+        variableContainer.style.height = newHeight + 'px';
+      });
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+        document.body.style.cursor = 'default';
+      });
+    })();
+
+    if (processInstanceId) {
+      loadDiagram();
+    } else {
+      alert('Please provide a processInstanceId in the URL, e.g., /viewer?processInstanceId={id}');
+    }
+    /*]]>*/
+  </script>
+</body>
+</html>

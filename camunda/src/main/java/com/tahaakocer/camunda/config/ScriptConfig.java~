@@ -1,0 +1,16 @@
+package com.tahaakocer.camunda.config;
+
+import org.camunda.bpm.engine.impl.scripting.engine.ScriptingEngines;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import javax.script.ScriptEngineManager;
+
+@Configuration
+public class ScriptConfig {
+    @Bean
+    public ScriptingEngines scriptingEngines() {
+        ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
+        return new ScriptingEngines(scriptEngineManager);
+    }
+}

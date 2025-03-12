@@ -59,7 +59,7 @@ public class UserController {
     }
     @PostMapping("/check-and-update-email-verification-status")
     public ResponseEntity<GeneralResponse> checkAndUpdateEmailVerificationStatus(@RequestBody VerificationEmailRequest verificationEmailRequest) {
-        EmailVerificationDto emailVerificationDto = this.userService.checkAndUpdateEmailVerificationStatus(verificationEmailRequest.getKeycloakUserId());
+        EmailVerificationDto emailVerificationDto = this.userService.checkAndUpdateEmailVerificationStatus(keycloakUserId);
         return ResponseEntity.ok(GeneralResponse.builder()
                 .code(200)
                 .message("Email verification status checked and updated successfully")

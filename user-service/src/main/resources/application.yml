@@ -54,3 +54,4 @@ logging:
   level:
     org.springframework.data.mongodb: DEBUG
     com.mongodb: DEBUG
+    com.keycloak: DEBUG

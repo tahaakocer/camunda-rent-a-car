@@ -117,7 +117,7 @@ execution.setVariable('formAttempCount', formAttempCount);</bpmn:script>
           <camunda:string>http://localhost:8282/v1/users/send-verification-email</camunda:string>
         </camunda:field>
         <camunda:field name="parameters">
-          <camunda:string>keycloakUserId</camunda:string>
+          <camunda:string>ST_KeycloakRegister_Results.data.keycloakUserId</camunda:string>
         </camunda:field>
         <camunda:field name="results">
           <camunda:string>code,message</camunda:string>
@@ -138,7 +138,7 @@ execution.setVariable('formAttempCount', formAttempCount);</bpmn:script>
           <camunda:string>http://localhost:8282/v1/users/check-and-update-email-verification-status</camunda:string>
         </camunda:field>
         <camunda:field name="parameters">
-          <camunda:string>keycolakUserId</camunda:string>
+          <camunda:string>keycloakUserId</camunda:string>
         </camunda:field>
         <camunda:field name="results">
           <camunda:string>code,message,data</camunda:string>
@@ -154,7 +154,7 @@ execution.setVariable('formAttempCount', formAttempCount);</bpmn:script>
       <bpmn:outgoing>Flow_1y3hsua</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:sequenceFlow id="Flow_0jg3be3" name="evet" sourceRef="Gateway_05qj4p3" targetRef="ST_SavePostgresDb">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${ST_DogrulamaKoduKontrol_Results.data.emailValid == true}</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${ST_EmailVerifyCode_Results.data.emailVerified == true}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:scriptTask id="Script_EmailAttempCount" name="emailAttempCount++" scriptFormat="javascript">
       <bpmn:incoming>Flow_1y3hsua</bpmn:incoming>
@@ -167,7 +167,7 @@ emailAttempCount++;
 execution.setVariable('emailAttempCount', emailAttempCount);</bpmn:script>
     </bpmn:scriptTask>
     <bpmn:sequenceFlow id="Flow_1y3hsua" name="hayır" sourceRef="Gateway_05qj4p3" targetRef="Script_EmailAttempCount">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${ST_DogrulamaKoduKontrol_Results.data.emailValid == false}</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${ST_EmailVerifyCode_Results.data.emailVerified == false}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:exclusiveGateway id="Gateway_053chbg" name="sayac" default="Flow_1kh9dza">
       <bpmn:incoming>Flow_1gbl87i</bpmn:incoming>
@@ -307,7 +307,7 @@ execution.setVariable('emailAttempCount', emailAttempCount);</bpmn:script>
     <bpmn:serviceTask id="ST_KeycloakRegister" name="Keycloak Register Et" camunda:class="com.tahaakocer.camunda.delegate.GenericServiceDelegate">
       <bpmn:extensionElements>
         <camunda:field name="serviceName">
-          <camunda:string>http://localhost:8282/v1/users/register-h2</camunda:string>
+          <camunda:string>http://localhost:8282/v1/users/register-mongo</camunda:string>
         </camunda:field>
         <camunda:field name="parameters">
           <camunda:string>tcNo,firstName,lastName,birthYear,phoneNumber,email,password</camunda:string>
@@ -335,6 +335,12 @@ execution.setVariable('emailAttempCount', emailAttempCount);</bpmn:script>
         <dc:Bounds x="400" y="320" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0nbp4mv_di" bpmnElement="Event_0nbp4mv">
+        <dc:Bounds x="2182" y="342" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_00jo2wg_di" bpmnElement="ST_MernisVerify">
+        <dc:Bounds x="670" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_0dcsho3_di" bpmnElement="Gateway_0dcsho3" isMarkerVisible="true">
         <dc:Bounds x="915" y="335" width="50" height="50" />
         <bpmndi:BPMNLabel>
@@ -356,24 +362,6 @@ execution.setVariable('emailAttempCount', emailAttempCount);</bpmn:script>
       <bpmndi:BPMNShape id="BPMNShape_009jier" bpmnElement="Script_FormAttempCount">
         <dc:Bounds x="890" y="190" width="100" height="80" />
         <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_1a2kdxq" bpmnElement="Activity_0w5b0ma">
-        <dc:Bounds x="400" y="460" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_00jo2wg_di" bpmnElement="ST_MernisVerify">
-        <dc:Bounds x="670" y="320" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_0k8m5ok" bpmnElement="Activity_0t8jmsh">
-        <dc:Bounds x="670" y="460" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_0ej1645" bpmnElement="Gateway_1kcj5e1" isMarkerVisible="true">
-        <dc:Bounds x="555" y="335" width="50" height="50" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="542" y="392" width="76" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0nbp4mv_di" bpmnElement="Event_0nbp4mv">
-        <dc:Bounds x="2182" y="342" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_02zfoah_di" bpmnElement="ST_EmailVerify">
         <dc:Bounds x="1250" y="320" width="100" height="80" />
@@ -415,6 +403,18 @@ execution.setVariable('emailAttempCount', emailAttempCount);</bpmn:script>
       <bpmndi:BPMNShape id="BPMNShape_1dxif8a" bpmnElement="Activity_1eptbfr">
         <dc:Bounds x="1250" y="460" width="100" height="80" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0k8m5ok" bpmnElement="Activity_0t8jmsh">
+        <dc:Bounds x="670" y="460" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1a2kdxq" bpmnElement="Activity_0w5b0ma">
+        <dc:Bounds x="400" y="460" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0ej1645" bpmnElement="Gateway_1kcj5e1" isMarkerVisible="true">
+        <dc:Bounds x="555" y="335" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="542" y="392" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0k5miql_di" bpmnElement="UT_InputVerifyCode">
         <dc:Bounds x="1410" y="320" width="100" height="80" />
         <bpmndi:BPMNLabel />
@@ -426,11 +426,8 @@ execution.setVariable('emailAttempCount', emailAttempCount);</bpmn:script>
         <dc:Bounds x="1050" y="320" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_0esa2rd" bpmnElement="Event_1nlj87d">
-        <dc:Bounds x="452" y="382" width="36" height="36" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0ezrndf_di" bpmnElement="Event_0ezrndf">
-        <dc:Bounds x="722" y="382" width="36" height="36" />
+      <bpmndi:BPMNShape id="BPMNShape_1o6kb9l" bpmnElement="Event_06jy6xp">
+        <dc:Bounds x="1102" y="382" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_0b03nbg" bpmnElement="Event_19eyf1u">
         <dc:Bounds x="2062" y="382" width="36" height="36" />
@@ -441,8 +438,11 @@ execution.setVariable('emailAttempCount', emailAttempCount);</bpmn:script>
       <bpmndi:BPMNShape id="BPMNShape_1ikubna" bpmnElement="Event_0ajirxc">
         <dc:Bounds x="1302" y="382" width="36" height="36" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_1o6kb9l" bpmnElement="Event_06jy6xp">
-        <dc:Bounds x="1102" y="382" width="36" height="36" />
+      <bpmndi:BPMNShape id="BPMNShape_0esa2rd" bpmnElement="Event_1nlj87d">
+        <dc:Bounds x="452" y="382" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0ezrndf_di" bpmnElement="Event_0ezrndf">
+        <dc:Bounds x="722" y="382" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_05l1zfr_di" bpmnElement="Flow_05l1zfr">
         <di:waypoint x="188" y="360" />
@@ -455,6 +455,18 @@ execution.setVariable('emailAttempCount', emailAttempCount);</bpmn:script>
       <bpmndi:BPMNEdge id="Flow_05gwe47_di" bpmnElement="Flow_05gwe47">
         <di:waypoint x="500" y="360" />
         <di:waypoint x="555" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18iojs4_di" bpmnElement="Flow_18iojs4">
+        <di:waypoint x="1350" y="360" />
+        <di:waypoint x="1410" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0jzfxkc_di" bpmnElement="Flow_0jzfxkc">
+        <di:waypoint x="1670" y="360" />
+        <di:waypoint x="1815" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1eaqz3y_di" bpmnElement="Flow_1eaqz3y">
+        <di:waypoint x="2110" y="360" />
+        <di:waypoint x="2182" y="360" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1cpb8hg_di" bpmnElement="Flow_1cpb8hg">
         <di:waypoint x="770" y="360" />
@@ -497,6 +509,64 @@ execution.setVariable('emailAttempCount', emailAttempCount);</bpmn:script>
         <di:waypoint x="890" y="230" />
         <di:waypoint x="655" y="230" />
       </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0jg3be3_di" bpmnElement="Flow_0jg3be3">
+        <di:waypoint x="1865" y="360" />
+        <di:waypoint x="2010" y="360" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1927" y="342" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1y3hsua_di" bpmnElement="Flow_1y3hsua">
+        <di:waypoint x="1840" y="335" />
+        <di:waypoint x="1840" y="270" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1842" y="300" width="26" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1gbl87i_di" bpmnElement="Flow_1gbl87i">
+        <di:waypoint x="1790" y="230" />
+        <di:waypoint x="1585" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1kh9dza_di" bpmnElement="Flow_1kh9dza">
+        <di:waypoint x="1535" y="230" />
+        <di:waypoint x="1300" y="230" />
+        <di:waypoint x="1300" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15ltjko_di" bpmnElement="Flow_15ltjko">
+        <di:waypoint x="2080" y="418" />
+        <di:waypoint x="2080" y="450" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ayejev_di" bpmnElement="Flow_0ayejev">
+        <di:waypoint x="2040" y="450" />
+        <di:waypoint x="2040" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0rz40f3_di" bpmnElement="Flow_0rz40f3">
+        <di:waypoint x="1560" y="205" />
+        <di:waypoint x="1560" y="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1597" y="173" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ltco45_di" bpmnElement="Flow_0ltco45">
+        <di:waypoint x="1610" y="120" />
+        <di:waypoint x="1662" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1pxtbns_di" bpmnElement="Flow_1pxtbns">
+        <di:waypoint x="1640" y="418" />
+        <di:waypoint x="1640" y="450" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1pb0duc_di" bpmnElement="Flow_1pb0duc">
+        <di:waypoint x="1600" y="450" />
+        <di:waypoint x="1600" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0j8ec1k_di" bpmnElement="Flow_0j8ec1k">
+        <di:waypoint x="1320" y="418" />
+        <di:waypoint x="1320" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0j928h1_di" bpmnElement="Flow_0j928h1">
+        <di:waypoint x="1280" y="460" />
+        <di:waypoint x="1280" y="400" />
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1mg4pqa_di" bpmnElement="Flow_1mg4pqa">
         <di:waypoint x="740" y="418" />
         <di:waypoint x="740" y="460" />
@@ -523,79 +593,9 @@ execution.setVariable('emailAttempCount', emailAttempCount);</bpmn:script>
         <di:waypoint x="320" y="300" />
         <di:waypoint x="320" y="320" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1eaqz3y_di" bpmnElement="Flow_1eaqz3y">
-        <di:waypoint x="2110" y="360" />
-        <di:waypoint x="2182" y="360" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1kh9dza_di" bpmnElement="Flow_1kh9dza">
-        <di:waypoint x="1535" y="230" />
-        <di:waypoint x="1300" y="230" />
-        <di:waypoint x="1300" y="320" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0j928h1_di" bpmnElement="Flow_0j928h1">
-        <di:waypoint x="1280" y="460" />
-        <di:waypoint x="1280" y="400" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_18iojs4_di" bpmnElement="Flow_18iojs4">
-        <di:waypoint x="1350" y="360" />
-        <di:waypoint x="1410" y="360" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1pb0duc_di" bpmnElement="Flow_1pb0duc">
-        <di:waypoint x="1600" y="450" />
-        <di:waypoint x="1600" y="400" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0war385_di" bpmnElement="Flow_0war385">
         <di:waypoint x="1510" y="360" />
         <di:waypoint x="1570" y="360" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0jzfxkc_di" bpmnElement="Flow_0jzfxkc">
-        <di:waypoint x="1670" y="360" />
-        <di:waypoint x="1815" y="360" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0jg3be3_di" bpmnElement="Flow_0jg3be3">
-        <di:waypoint x="1865" y="360" />
-        <di:waypoint x="2010" y="360" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="1927" y="342" width="22" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1y3hsua_di" bpmnElement="Flow_1y3hsua">
-        <di:waypoint x="1840" y="335" />
-        <di:waypoint x="1840" y="270" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="1842" y="300" width="26" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1gbl87i_di" bpmnElement="Flow_1gbl87i">
-        <di:waypoint x="1790" y="230" />
-        <di:waypoint x="1585" y="230" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0rz40f3_di" bpmnElement="Flow_0rz40f3">
-        <di:waypoint x="1560" y="205" />
-        <di:waypoint x="1560" y="160" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="1597" y="173" width="24" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0ayejev_di" bpmnElement="Flow_0ayejev">
-        <di:waypoint x="2040" y="450" />
-        <di:waypoint x="2040" y="400" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_15ltjko_di" bpmnElement="Flow_15ltjko">
-        <di:waypoint x="2080" y="418" />
-        <di:waypoint x="2080" y="450" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0ltco45_di" bpmnElement="Flow_0ltco45">
-        <di:waypoint x="1610" y="120" />
-        <di:waypoint x="1662" y="120" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1pxtbns_di" bpmnElement="Flow_1pxtbns">
-        <di:waypoint x="1640" y="418" />
-        <di:waypoint x="1640" y="450" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0j8ec1k_di" bpmnElement="Flow_0j8ec1k">
-        <di:waypoint x="1320" y="418" />
-        <di:waypoint x="1320" y="460" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1lly4l6_di" bpmnElement="Flow_1lly4l6">
         <di:waypoint x="1150" y="360" />

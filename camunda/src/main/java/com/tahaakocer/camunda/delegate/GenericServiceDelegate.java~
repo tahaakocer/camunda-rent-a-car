@@ -1,5 +1,8 @@
 package com.tahaakocer.camunda.delegate;
 
+import camundajar.impl.com.google.gson.Gson;
+import com.tahaakocer.camunda.dto.LogDto;
+import com.tahaakocer.camunda.service.LogService;
 import com.tahaakocer.camunda.utils.VariableUtils;
 import org.camunda.bpm.engine.delegate.BpmnError;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
@@ -16,6 +19,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,7 +31,9 @@ public class GenericServiceDelegate implements JavaDelegate {
     private static final Logger log = LoggerFactory.getLogger(GenericServiceDelegate.class);
 
     private final RestTemplate restTemplate;
-    private final RedisTemplate<String, String> redisTemplate; // Redis üzerinden token yönetimi için
+    private final RedisTemplate<String, String> redisTemplate;
+    private final Gson gson;
+    private final LogService logService;
 
     @Value("${keycloak.client-id}")
     private String clientId;
@@ -48,33 +54,42 @@ public class GenericServiceDelegate implements JavaDelegate {
     private Expression parameters;
     private Expression results;
 
-    public GenericServiceDelegate(RestTemplate restTemplate, RedisTemplate<String, String> redisTemplate) {
+    private String serviceUrl;
+    private String parametersVal;
+    private String resultsVal;
+
+    private Map<String, Object> requestBody;
+    private Map fullResponse;
+
+
+    public GenericServiceDelegate(RestTemplate restTemplate, RedisTemplate<String, String> redisTemplate, Gson gson, LogService logService) {
         this.restTemplate = restTemplate;
         this.redisTemplate = redisTemplate;
+        this.gson = gson;
+        this.logService = logService;
     }
 
     @Override
     public void execute(DelegateExecution execution) {
         try {
-            String serviceUrl = (String) serviceName.getValue(execution);
-            String parametersVal = (String) parameters.getValue(execution);
-            String resultsVal = (String) results.getValue(execution);
+            serviceUrl = (String) serviceName.getValue(execution);
+            parametersVal = (String) parameters.getValue(execution);
+            resultsVal = (String) results.getValue(execution);
 
             log.info("GenericServiceDelegate - serviceUrl: {}", serviceUrl);
             log.info("GenericServiceDelegate - parameters: {}", parametersVal);
             log.info("GenericServiceDelegate - results: {}", resultsVal);
 
-            // Parametre anahtarlarını virgül ile ayrıştırıp listeye çeviriyoruz.
+
             List<String> parameterKeys = VariableUtils.StringSplit(parametersVal);
             List<String> resultFields = VariableUtils.StringSplit(resultsVal);
 
-            // Request body oluşturuluyor.
-            Map<String, Object> requestBody = new HashMap<>();
+
+            this.requestBody = new HashMap<>();
             for (String key : parameterKeys) {
                 key = key.trim();
                 Object value = getParameterValue(execution, key);
                 if (value != null) {
-                    // Eğer key, Results içeren bir yol ise, sadece son field ismini al
                     String requestKey = key;
                     if (key.contains("Results")) {
                         String[] parts = key.split("\\.");
@@ -118,7 +133,7 @@ public class GenericServiceDelegate implements JavaDelegate {
                 }
             }
 
-            Map fullResponse = responseEntity.getBody();
+            fullResponse = responseEntity.getBody();
             log.info("GenericServiceDelegate - Full Response: {}", fullResponse);
             if (fullResponse == null) {
                 String errorMsg = "Mikroservisten boş response alındı.";
@@ -172,10 +187,24 @@ public class GenericServiceDelegate implements JavaDelegate {
             resultKeys.add(currentResultKey);
             execution.setVariable("resultKeys", resultKeys);
 
+
+
         } catch (Exception e) {
             log.error("GenericServiceDelegate - Hata oluştu: {}", e.getMessage(), e);
             execution.setVariable("errorMessage", e.getMessage());
             throw new BpmnError("SERVICE_ERROR", e.getMessage());
+        }
+        finally {
+            LogDto log = LogDto.builder()
+                    .activityId(execution.getCurrentActivityId())
+                    .processInstanceId(execution.getProcessInstanceId())
+                    .stepName(execution.getCurrentActivityName())
+                    .serviceName(serviceUrl)
+                    .requestBody(requestBody)
+                    .responseBody(fullResponse)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            this.logService.save(log);
         }
     }
 

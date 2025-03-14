@@ -1,0 +1,4 @@
+package com.tahaakocer.camunda.config;
+
+public class GsonConfig {
+}

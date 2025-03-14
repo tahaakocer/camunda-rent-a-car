@@ -27,6 +27,7 @@ spring:
         jwt:
           issuer-uri: ${JWT_ISSUER_URI} #realm
           jwk-set-uri: ${JWT_ISSUER_URI}/protocol/openid-connect/certs
+
 camunda:
   bpm:
     admin-user:
@@ -34,6 +35,8 @@ camunda:
       password: ${ADMIN_USER_PASSWORD}
     auto-deployment-enabled: true
     enabled: true
+    history-level: auto
+
 jwt:
   auth:
     converter:
@@ -49,3 +52,8 @@ keycloak:
     url: ${JWT_ISSUER_URI}/protocol/openid-connect/token
 server:
   port: 8181
+logging:
+  level:
+    com.tahaakocer.camunda: DEBUG
+
+

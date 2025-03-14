@@ -15,6 +15,7 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
+import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -167,7 +168,8 @@ public class UserService {
         try {
             RealmResource realmResource = keycloak.realm(realm);
             UserResource userResource = realmResource.users().get(userId);
-            String clientUuid = realmResource.clients().findByClientId(clientId).getFirst().getId();
+            List<ClientRepresentation> clients = realmResource.clients().findByClientId(clientId);
+            String clientUuid = clients.get(0).getId();
             RoleRepresentation clientRole = realmResource.clients().get(clientUuid)
                     .roles().get(roleName).toRepresentation();
             userResource.roles().clientLevel(clientUuid).add(Collections.singletonList(clientRole));

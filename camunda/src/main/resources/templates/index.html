@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <title>BPMN Viewer</title>
@@ -11,6 +12,7 @@
             box-sizing: border-box;
             font-family: 'Segoe UI', Arial, sans-serif;
         }
+
         /* Tooltip Styles */
         .tooltip {
             position: absolute;
@@ -23,7 +25,7 @@
             max-width: 400px;
             max-height: 300px;
             overflow-y: auto;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             visibility: hidden;
             opacity: 0;
             transition: opacity 0.1s ease-in-out;
@@ -35,11 +37,12 @@
         }
 
         .tooltip.persistent {
-            position: fixed; /* Stays in place when clicked */
-            z-index: 1001; /* Higher than hover tooltip */
+            position: fixed;
+            z-index: 1001;
         }
-        
-        html, body {
+
+        html,
+        body {
             height: 100%;
             background-color: #f5f7fa;
             color: #333;
@@ -49,21 +52,25 @@
         h2#processName {
             padding: 15px 20px;
             background: #ffffff;
-            border-bottom: 1px solid #e0e4e8;
+            border-bottom: 1px solid #e5e7eb;
+            /* Updated to softer gray */
             font-size: 1.5rem;
             font-weight: 500;
-            color: #2c3e50;
+            color: #1e293b;
+            /* Darker, richer color */
         }
 
         /* Main Container */
         #viewer-container {
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 60px); /* Adjust for header */
+            height: calc(100vh - 60px);
             background: #ffffff;
-            border-radius: 8px;
+            border-radius: 12px;
+            /* Softer corners */
             margin: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            /* Slightly deeper shadow */
         }
 
         /* Canvas Area */
@@ -77,44 +84,65 @@
         /* Splitter */
         #splitter {
             height: 8px;
-            background: #e0e4e8;
+            background: #e5e7eb;
+            /* Softer gray */
             cursor: row-resize;
             transition: background 0.2s;
         }
+
         #splitter:hover {
-            background: #d0d4d8;
+            background: #d1d5db;
+            /* Slightly darker on hover */
         }
 
+        /* Variable Container */
+        /* Sadece bu kısmı güncelleyin */
         #variable-container {
-            height: 250px;
+            height: 400px;
+            /* 300px'ten 400px'e artırıldı */
             width: 100%;
             overflow: hidden;
             background: #ffffff;
-            border-top: 1px solid #e0e4e8;
+            border-top: 1px solid #e5e7eb;
             display: flex;
             flex-direction: column;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+            border-radius: 0 0 12px 12px;
         }
 
         #variable-list {
             flex-grow: 1;
             overflow-y: auto;
             background: #ffffff;
+            border-radius: 0 0 12px 12px;
+            max-height: 100%;
+            /* Kapsayıcının yüksekliğini sınırlamak için */
         }
 
         #search-bar {
-            padding: 10px 15px;
+            padding: 12px 20px;
             width: 100%;
             border: none;
-            border-bottom: 1px solid #e0e4e8;
+            border-bottom: 1px solid #e5e7eb;
             font-size: 0.95rem;
             outline: none;
-            background: #f8f9fa;
-            transition: background 0.2s;
+            background: #f8fafc;
+            transition: all 0.2s ease;
+            color: #1e293b;
         }
+
         #search-bar:focus {
             background: #ffffff;
-            border-bottom-color: #3498db;
+            border-bottom: 2px solid #3b82f6;
+            /* Vibrant blue */
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
         }
+
+        #search-bar::placeholder {
+            color: #94a3b8;
+            /* Softer placeholder */
+        }
+
         /* Table Styles */
         table {
             width: 100%;
@@ -123,48 +151,68 @@
             font-size: 0.9rem;
         }
 
-        th, td {
-            padding: 12px 15px;
+        th,
+        td {
+            padding: 14px 20px;
             text-align: left;
-            border-bottom: 1px solid #eef1f5;
+            border-bottom: 1px solid #f1f3f5;
+            color: #1e293b;
         }
 
         th {
-            background: #d1e6fb;
-            color: #2c3e50;
-            font-weight: 500;
+            background: linear-gradient(135deg, #dbeafe, #eff6ff);
+            color: #1e40af;
+            font-weight: 600;
             position: sticky;
             top: 0;
-            border-bottom: 2px solid #1caaff;
-            border-right: 1px solid #e8ecef;
-          }
+            border-bottom: 2px solid #60a5fa;
+            border-right: 1px solid #e5e7eb;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+            z-index: 10;
+        }
+
+        /* Specific adjustments for "Create Time" column (3rd column) */
+        th:nth-child(3),
+        td:nth-child(3) {
+            width: 150px;
+            /* Narrower width - değişmedi */
+            padding-right: 25px;
+            /* 10px'ten 15px'e artırarak sola kaydırma */
+            text-align: left;
+            /* Sağdan sola hizalama */
+        }
 
         td {
-            border-right: 1px solid #e8ecef; /* Subtle vertical line */
+            border-right: 1px solid #e5e7eb;
+            transition: background 0.2s;
         }
 
         th:last-child,
         td:last-child {
-            border-right: none; /* Remove line from last column */
+            border-right: none;
         }
 
         tr {
-            transition: background 0.2s;
+            transition: all 0.2s ease;
             background: #ffffff;
         }
 
         tr:hover {
-            background: #f8f9fa;
+            background: #f8fafc;
+            /* Transform yerine sadece arka plan ve gölge ile animasyon */
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
         }
 
         /* BPMN Highlight Styles */
-        .active-step .djs-visual > :nth-child(1) {
+        .active-step .djs-visual> :nth-child(1) {
             fill: rgba(52, 152, 219, 0.2) !important;
             stroke: #3498db !important;
             stroke-width: 2px;
         }
 
-        .completed-task .djs-visual > :nth-child(1) {
+        .completed-task .djs-visual> :nth-child(1) {
             fill: rgba(46, 204, 113, 0.2) !important;
             stroke: #2ecc71 !important;
             stroke-width: 1px;
@@ -177,20 +225,27 @@
             border-radius: 12px;
             font-size: 0.8rem;
             font-weight: 500;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         /* Clickable Elements */
         .clickable {
-            color: #3498db;
+            color: #3b82f6;
+            /* Vibrant blue */
             text-decoration: none;
             cursor: pointer;
             position: relative;
-            transition: color 0.2s;
+            transition: color 0.2s, padding-left 0.2s;
+            font-weight: 500;
         }
+
         .clickable:hover {
-            color: #2980b9;
+            color: #1e40af;
+            /* Darker blue */
+            padding-left: 4px;
+            /* Subtle shift */
         }
+
         /* JSON Syntax Highlighting */
         pre#tooltipValue {
             margin: 0;
@@ -199,67 +254,366 @@
         }
 
         .json-key {
-            color: #e74c3c; /* Red for keys */
+            color: #e74c3c;
         }
+
         .json-string {
-            color: #2ecc71; /* Green for strings */
+            color: #2ecc71;
         }
+
         .json-number {
-            color: #f1c40f; /* Yellow for numbers */
+            color: #f1c40f;
         }
+
         .json-boolean {
-            color: #3498db; /* Blue for booleans */
+            color: #3498db;
         }
+
         .json-null {
-            color: #7f8c8d; /* Gray for null */
+            color: #7f8c8d;
         }
 
         /* Scrollbar for tooltip */
         .tooltip::-webkit-scrollbar {
             width: 6px;
         }
+
         .tooltip::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.3);
+            background: rgba(255, 255, 255, 0.3);
             border-radius: 3px;
         }
+
         .tooltip::-webkit-scrollbar-track {
             background: transparent;
         }
+
         /* Modal Styles */
-        .modal, .modal-content, .close {
-            display: none; /* Remove old modal styles */
+        .modal,
+        .modal-content,
+        .close {
+            display: none;
         }
 
         /* Animations */
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         /* Scrollbar Styling */
-        #variable-list::-webkit-scrollbar,
-        .modal-content::-webkit-scrollbar {
+        #variable-list::-webkit-scrollbar {
             width: 8px;
         }
 
-        #variable-list::-webkit-scrollbar-thumb,
-        .modal-content::-webkit-scrollbar-thumb {
-            background: #bdc3c7;
+        #variable-list::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            /* Softer gray */
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        #variable-list::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+            /* Darker on hover */
+        }
+
+        #variable-list::-webkit-scrollbar-track {
+            background: #f1f3f5;
             border-radius: 4px;
         }
 
-        #variable-list::-webkit-scrollbar-track,
-        .modal-content::-webkit-scrollbar-track {
+        /* Log Modal Styles */
+        .log-modal {
+            display: none;
+            position: fixed;
+            z-index: 1002;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            animation: fadeIn 0.3s ease-out;
+            backdrop-filter: blur(2px);
+        }
+
+        .log-modal-content {
+            background-color: #ffffff;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 85%;
+            max-width: 950px;
+            max-height: 85vh;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease-out;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .log-header {
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #ffffff, #f8f9fa);
+            border-bottom: 1px solid #e5e7eb;
+            position: relative;
+        }
+
+        .log-header h3 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .log-close {
+            position: absolute;
+            right: 25px;
+            top: 25px;
+            color: #64748b;
+            font-size: 28px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .log-close:hover {
+            color: #1e293b;
+            transform: scale(1.1);
+        }
+
+        .log-basic-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .log-info-item {
+            background: rgba(0, 100, 255, 0.08);
+            /* Kept your custom color */
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .log-info-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .log-info-item strong {
+            color: #1e293b;
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .log-body {
+            display: flex;
+            height: 450px;
+            padding: 25px;
+            background: #f9fafb;
+            gap: 25px;
+        }
+
+        .log-timestamp-container {
+            width: 35%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-timestamp-container h4 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #334155;
+        }
+
+        .log-timestamp-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .log-timestamp-item {
+            padding: 12px 18px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f3f5;
+            transition: background 0.2s, padding-left 0.2s;
+            color: #475569;
+        }
+
+        .log-timestamp-item:hover {
             background: #f1f3f5;
+            padding-left: 22px;
+        }
+
+        .log-timestamp-item.selected {
+            background: #dbeafe;
+            color: #1e40af;
+            font-weight: 500;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .log-content-container {
+            width: 65%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 15px;
+            background: #ffffff;
+            border-radius: 6px 6px 0 0;
+            overflow: hidden;
+        }
+
+        .log-tab {
+            padding: 12px 25px;
+            cursor: pointer;
+            color: #64748b;
+            font-weight: 500;
+            transition: all 0.2s;
+            flex: 1;
+            text-align: center;
+            background: #f1f3f5;
+        }
+
+        .log-tab.active {
+            color: #1e40af;
+            border-bottom: 3px solid #3b82f6;
+            background: #ffffff;
+            font-weight: 600;
+        }
+
+        .log-tab:hover:not(.active) {
+            color: #1e293b;
+            background: #e5e7eb;
+        }
+
+        .log-content {
+            flex-grow: 1;
+            background: #2c3e50;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 0 0 8px 8px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #f1f3f5;
+            display: none;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .log-content.active {
+            display: block;
+        }
+
+        /* Scrollbar styling for log content */
+        .log-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .log-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* JSON highlighting */
+        .log-content .json-key {
+            color: #f87171;
+        }
+
+        .log-content .json-string {
+            color: #34d399;
+        }
+
+        .log-content .json-number {
+            color: #fbbf24;
+        }
+
+        .log-content .json-boolean {
+            color: #60a5fa;
+        }
+
+        .log-content .json-null {
+            color: #94a3b8;
+        }
+
+        .log-content-wrapper {
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #f1f3f5;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Info Icon */
+        .info-icon {
+            position: absolute;
+            z-index: 1000;
+            width: 16px;
+            height: 16px;
+            background: #3498db;
+            color: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            pointer-events: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            visibility: hidden;
+        }
+
+        .djs-group[data-element-type="bpmn:ServiceTask"] {
+            cursor: pointer;
         }
     </style>
     <script src="https://unpkg.com/bpmn-js@13.2.2/dist/bpmn-navigated-viewer.production.min.js"></script>
 </head>
+
 <body>
     <h2 id="processName"></h2>
     <div id="viewer-container">
@@ -285,6 +639,37 @@
     <div id="valueTooltip" class="tooltip">
         <pre id="tooltipValue"></pre>
     </div>
+    <div id="logModal" class="log-modal">
+        <div class="log-modal-content">
+            <div class="log-header">
+                <h3>Log Details</h3>
+                <span class="log-close">×</span>
+                <div class="log-basic-info" id="logBasicInfo"></div>
+            </div>
+            <div class="log-body">
+                <div class="log-timestamp-container">
+                    <h4>Transactions</h4>
+                    <div class="log-timestamp-list" id="logTimestampList"></div>
+                </div>
+                <div class="log-content-container">
+                    <div class="log-tabs">
+                        <div class="log-tab active" data-tab="request">Request</div>
+                        <div class="log-tab" data-tab="response">Response</div>
+                    </div>
+                    <div class="log-content-wrapper">
+                        <button class="copy-btn" data-target="requestContent">Copy</button>
+                        <pre class="log-content active" id="requestContent"></pre>
+                    </div>
+                    <div class="log-content-wrapper">
+                        <button class="copy-btn" data-target="responseContent">Copy</button>
+                        <pre class="log-content" id="responseContent"></pre>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div id="infoIcon" class="info-icon">i</div>
     <!-- JavaScript remains unchanged -->
     <script th:inline="javascript">
         /*<![CDATA[*/
@@ -294,7 +679,8 @@
         });
         const processInstanceId = /*[[${processInstanceId}]]*/ null;
         let activePersistentElement = null; // Track the currently clicked element
-        
+        let activeActivityIds = new Set(); // Global set for active tasks
+        let completedActivityIds = new Set(); // Global set for completed tasks
         async function fetchAccessToken() {
             try {
                 const response = await fetch('/api/token', { method: 'GET' });
@@ -358,7 +744,7 @@
             // Close persistent tooltip when clicking outside
             document.addEventListener('click', (event) => {
                 const tooltip = document.getElementById('valueTooltip');
-                if (activePersistentElement && !event.target.classList.contains('clickable')) {
+                if (activePersistentElement && !tooltip.contains(event.target) && !event.target.classList.contains('clickable')) {
                     tooltip.classList.remove('visible', 'persistent');
                     activePersistentElement = null;
                 }
@@ -398,7 +784,7 @@
             const tooltip = document.getElementById('valueTooltip');
             const x = event.clientX + 15;
             const y = event.clientY - 10;
-            
+
             tooltip.style.left = `${x}px`;
             tooltip.style.top = `${y}px`;
 
@@ -442,7 +828,7 @@
         }
 
         function syntaxHighlight(json) {
-            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            json = json.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
             return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, function (match) {
                 let cls = 'json-number';
                 if (/^"/.test(match)) {
@@ -459,7 +845,7 @@
                 return `<span class="${cls}">${match}</span>`;
             });
         }
-        
+
         function setupSearch(variables) {
             const searchBar = document.getElementById('search-bar');
             searchBar.addEventListener('input', (e) => {
@@ -469,7 +855,6 @@
                     const typeMatch = variable.type.toLowerCase().includes(searchTerm);
                     let valueMatch = false;
                     if (variable.type === 'Object' && typeof variable.value === 'object') {
-                        // Nesneyi string'e çevirerek arama
                         valueMatch = JSON.stringify(variable.value).toLowerCase().includes(searchTerm);
                     } else {
                         valueMatch = String(variable.value).toLowerCase().includes(searchTerm);
@@ -479,60 +864,48 @@
                 displayVariables(filteredVariables);
             });
         }
-        function showValuePopup(event) {
-            const type = event.target.getAttribute('data-type');
-            const value = event.target.getAttribute('data-value');
-            const modal = document.getElementById('valueModal');
-            const modalValue = document.getElementById('modalValue');
-            const closeBtn = document.getElementsByClassName('close')[0];
-
-            if (type === 'Object') {
-                modalValue.textContent = JSON.stringify(JSON.parse(value), null, 2);
-            } else {
-                modalValue.textContent = value;
-            }
-
-            modal.style.display = 'block';
-
-            closeBtn.onclick = () => {
-                modal.style.display = 'none';
-            };
-
-            window.onclick = (event) => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            };
-        }
 
         async function loadDiagram() {
             try {
                 const baseUrl = '/engine-rest';
                 if (!TOKEN) await fetchAccessToken();
-
+    
                 const authHeaders = {
                     "Authorization": `Bearer ${TOKEN}`,
                     "Content-Type": "application/json"
                 };
-
+    
                 const instanceResponse = await fetch(`${baseUrl}/history/process-instance/${processInstanceId}`, {
                     headers: authHeaders
                 });
                 if (!instanceResponse.ok) throw new Error('Failed to fetch process instance');
                 const instance = await instanceResponse.json();
-                document.getElementById('processName').textContent = instance.processDefinitionName || 'Process';
-
+                document.getElementById('processName').textContent = `${instance.processDefinitionName} - Id: ${processInstanceId}` || 'Process';
+    
                 const xmlResponse = await fetch(`${baseUrl}/process-definition/${instance.processDefinitionId}/xml`, {
                     headers: authHeaders
                 });
                 if (!xmlResponse.ok) throw new Error('Failed to fetch BPMN XML');
                 const xmlData = await xmlResponse.json();
                 await viewer.importXML(xmlData.bpmn20Xml);
-
+                setupTaskDoubleClick();
+                setupServiceTaskHover();
+    
+                const elementRegistry = viewer.get('elementRegistry');
+                elementRegistry.forEach((element) => {
+                    if (element.type === 'bpmn:ServiceTask') {
+                        const gfx = elementRegistry.getGraphics(element);
+                        gfx.setAttribute('data-element-type', 'bpmn:ServiceTask');
+                    }
+                });
                 const canvas = viewer.get('canvas');
                 canvas.zoom('fit-viewport');
-
-                let activeActivityIds = new Set();
+    
+                // Reset sets before populating
+                activeActivityIds.clear();
+                completedActivityIds.clear();
+    
+                // Fetch and process active activities
                 const activityResponse = await fetch(`${baseUrl}/process-instance/${processInstanceId}/activity-instances`, {
                     headers: authHeaders
                 });
@@ -545,16 +918,22 @@
                 } else {
                     console.warn('No active instances found or process completed');
                 }
-
+    
+                // Fetch and process historical (completed) activities
                 const historyResponse = await fetch(`${baseUrl}/history/activity-instance?processInstanceId=${processInstanceId}`, {
                     headers: authHeaders
                 });
                 if (!historyResponse.ok) throw new Error('Failed to fetch history activities');
                 const historyData = await historyResponse.json();
                 if (historyData && historyData.length > 0) {
+                    historyData.forEach(activity => {
+                        if (activity.endTime && activity.activityId) {
+                            completedActivityIds.add(activity.activityId);
+                        }
+                    });
                     markCompletedTasks(canvas, viewer.get('overlays'), historyData, activeActivityIds);
                 }
-
+    
                 await loadVariables();
             } catch (err) {
                 console.error('Error loading diagram:', err);
@@ -626,12 +1005,10 @@
             });
             document.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
-                // viewer-container'ın sınırlarını alarak yeni yükseklik hesaplanır
                 const containerRect = viewerContainer.getBoundingClientRect();
                 let newHeight = containerRect.bottom - e.clientY;
-                // Minimum ve maksimum yükseklik sınırları
-                if (newHeight < 100) newHeight = 100;
-                if (newHeight > containerRect.height - 100) newHeight = containerRect.height - 100;
+                if (newHeight < 10) newHeight = 10; // Daha küçük bir minimum sınır
+                if (newHeight > containerRect.height - 10) newHeight = containerRect.height - 10; // Daha esnek maksimum sınır
                 variableContainer.style.height = newHeight + 'px';
             });
             document.addEventListener('mouseup', () => {
@@ -639,6 +1016,182 @@
                 document.body.style.cursor = 'default';
             });
         })();
+
+        function setupTaskDoubleClick() {
+            const eventBus = viewer.get('eventBus');
+            eventBus.on('element.click', async (e) => {
+                const element = e.element;
+                if (element.type === 'bpmn:ServiceTask') {
+                    if (activeActivityIds.has(element.id) || completedActivityIds.has(element.id)) {
+                        await showLogPopup(element.id);
+                    } else {
+                        console.log(`ServiceTask ${element.id} is neither active nor completed, ignoring click.`);
+                    }
+                }
+            });
+        }
+
+        function setupServiceTaskHover() {
+            const eventBus = viewer.get('eventBus');
+            const infoIcon = document.getElementById('infoIcon');
+    
+            eventBus.on('element.hover', (e) => {
+                const element = e.element;
+                if (element.type === 'bpmn:ServiceTask') {
+                    // Only show icon for active or completed ServiceTasks
+                    if (activeActivityIds.has(element.id) || completedActivityIds.has(element.id)) {
+                        infoIcon.style.visibility = 'visible';
+                        const gfx = e.gfx;
+                        const bbox = gfx.getBoundingClientRect();
+                        infoIcon.style.left = `${bbox.right - 13}px`;
+                        infoIcon.style.top = `${bbox.top - 3}px`;
+                        gfx.style.cursor = 'pointer';
+                    }
+                }
+            });
+    
+            eventBus.on('element.mousemove', (e) => {
+                const element = e.element;
+                if (element.type === 'bpmn:ServiceTask') {
+                    // Only update position if active or completed
+                    if (activeActivityIds.has(element.id) || completedActivityIds.has(element.id)) {
+                        infoIcon.style.left = `${e.originalEvent.clientX + 10}px`;
+                        infoIcon.style.top = `${e.originalEvent.clientY - 20}px`;
+                    }
+                }
+            });
+    
+            eventBus.on('element.out', (e) => {
+                const element = e.element;
+                if (element.type === 'bpmn:ServiceTask') {
+                    // Hide icon when leaving, regardless of state (cleanup)
+                    infoIcon.style.visibility = 'hidden';
+                    e.gfx.style.cursor = 'default';
+                }
+            });
+        }
+
+        async function showLogPopup(activityId) {
+            const modal = document.getElementById('logModal');
+            const closeBtn = modal.querySelector('.log-close');
+            const basicInfo = document.getElementById('logBasicInfo');
+            const timestampList = document.getElementById('logTimestampList');
+            const requestContent = document.getElementById('requestContent');
+            const responseContent = document.getElementById('responseContent');
+            const tabs = modal.querySelectorAll('.log-tab');
+
+            try {
+                const response = await fetch(
+                    `http://localhost:8181/logs/get-by-processInstanceId-and-activityId?processInstanceId=${processInstanceId}&activityId=${activityId}`,
+                    {
+                        headers: {
+                            "Authorization": `Bearer ${TOKEN}`,
+                            "Content-Type": "application/json"
+                        }
+                    }
+                );
+
+                if (!response.ok) throw new Error('Failed to fetch logs');
+                const logData = await response.json();
+                const logs = logData.data || [];
+
+                if (logs.length === 0) {
+                    basicInfo.innerHTML = `<p>No logs found for activity: ${activityId}</p>`;
+                    timestampList.innerHTML = '';
+                    modal.style.display = 'block';
+                    return;
+                }
+
+                const latestLog = logs[0];
+                basicInfo.innerHTML = `
+                    <div class="log-info-item">
+                        <strong>Step Name</strong>
+                        ${latestLog.activityId}
+                    </div>
+                    <div class="log-info-item">
+                        <strong>Service Address</strong>
+                        ${latestLog.serviceName}
+                    </div>
+                    <div class="log-info-item">
+                        <strong>Last Updated Time</strong>
+                        ${latestLog.timestamp}
+                    </div>
+                `;
+
+                timestampList.innerHTML = '';
+                logs.forEach((log, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'log-timestamp-item';
+                    item.textContent = log.timestamp;
+                    item.dataset.index = index;
+                    if (index === 0) item.classList.add('selected');
+                    item.addEventListener('click', () => {
+                        timestampList.querySelectorAll('.log-timestamp-item').forEach(i => i.classList.remove('selected'));
+                        item.classList.add('selected');
+                        showLogDetails(logs[index]);
+                    });
+                    timestampList.appendChild(item);
+                });
+
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        tabs.forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.log-content').forEach(c => c.classList.remove('active'));
+                        tab.classList.add('active');
+                        document.getElementById(`${tab.dataset.tab}Content`).classList.add('active');
+                    });
+                });
+
+                showLogDetails(latestLog);
+                modal.style.display = 'block';
+
+                closeBtn.onclick = () => modal.style.display = 'none';
+                window.onclick = (event) => {
+                    if (event.target === modal) modal.style.display = 'none';
+                };
+
+            } catch (err) {
+                console.error('Error fetching logs:', err);
+                basicInfo.innerHTML = `<p>Error loading logs: ${err.message}</p>`;
+                modal.style.display = 'block';
+            }
+        }
+
+        function showLogDetails(log) {
+            const requestContent = document.getElementById('requestContent');
+            const responseContent = document.getElementById('responseContent');
+
+            try {
+                // Try to parse and format JSON, fall back to raw string if it fails
+                const requestJson = JSON.parse(log.requestBody);
+                requestContent.innerHTML = syntaxHighlight(JSON.stringify(requestJson, null, 2));
+            } catch (e) {
+                requestContent.textContent = log.requestBody;
+            }
+
+            try {
+                const responseJson = JSON.parse(log.responseBody);
+                responseContent.innerHTML = syntaxHighlight(JSON.stringify(responseJson, null, 2));
+            } catch (e) {
+                responseContent.textContent = log.responseBody;
+            }
+        }
+        document.querySelectorAll('.copy-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-target');
+                const content = document.getElementById(targetId).innerText;
+                navigator.clipboard.writeText(content).then(() => {
+                    // Geri bildirim için buton metnini geçici olarak "Copied!" yapıyoruz
+                    const originalText = this.textContent;
+                    this.textContent = "Copied!";
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Kopyalama başarısız: ', err);
+                });
+            });
+        });
 
         if (processInstanceId) {
             loadDiagram();

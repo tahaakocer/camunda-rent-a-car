@@ -1,5 +1,6 @@
 package com.tahaakocer.camunda.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -13,12 +14,22 @@ import org.springframework.web.client.RestTemplate;
 @RestController
 public class AuthController {
 
-    private static final String TOKEN_URL = "http://localhost:8083/realms/camunda-rent-a-car/protocol/openid-connect/token";
-    private static final String CLIENT_ID = "rest-api";
-    private static final String CLIENT_SECRET = "fJyHtl6X0qKC4hGUIywWQS8iCmyECY3V";
+    @Value("${keycloak.token.url}")
+    private String TOKEN_URL;
+
+    @Value("${keycloak.client-id}")
+    private String CLIENT_ID;
+
+    @Value("${keycloak.client-secret}")
+    private String CLIENT_SECRET;
+
+    @Value("${keycloak.username}")
+    private String USERNAME;
+
+    @Value("${keycloak.password}")
+    private String PASSWORD;
+
     private static final String GRANT_TYPE = "password";
-    private static final String USERNAME = "user1";
-    private static final String PASSWORD = "123456";
 
     @GetMapping("/api/token")
     public ResponseEntity<String> getAccessToken() {

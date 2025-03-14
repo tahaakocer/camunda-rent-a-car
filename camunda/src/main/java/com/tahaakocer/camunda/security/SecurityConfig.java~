@@ -21,15 +21,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .headers(headers -> headers
-                        .frameOptions(
-                                frameOptions -> frameOptions
-                                        .sameOrigin()
-                                        .defaultsDisabled()
-                                        .addHeaderWriter(
-                                                new XFrameOptionsHeaderWriter(
-                                                        XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN)
-                                        )
-                        )
+                        .frameOptions(frameOptions -> frameOptions.sameOrigin().defaultsDisabled().addHeaderWriter(new XFrameOptionsHeaderWriter(XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN)))
                 )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/engine-rest/**").hasRole("user")

@@ -1,4 +1,5 @@
 package com.tahaakocer.user_service.mapper;
+import com.tahaakocer.user_service.dto.UserPostgresRequest;
 import com.tahaakocer.user_service.dto.UserRequest;
 import com.tahaakocer.user_service.dto.UserResponse;
 import com.tahaakocer.user_service.dto.UserDto;
@@ -20,4 +21,5 @@ public interface UserMapper {
     UserDto requestToDto(UserRequest userRequest);
     UserResponse dtoToResponse(UserDto userDto);
 
+    UserDto postgresRequestToDto(UserPostgresRequest userPostgresRequest);
 }

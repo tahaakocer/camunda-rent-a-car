@@ -11,7 +11,6 @@ import lombok.Setter;
 @Setter
 public class UserRequest
 {
-
     private String tcNo;
     private String firstName;
     private String lastName;

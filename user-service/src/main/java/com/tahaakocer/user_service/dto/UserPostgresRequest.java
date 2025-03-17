@@ -6,12 +6,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Setter
-public class UserRequest
-{
-
+public class UserPostgresRequest {
+    private String keycloakUserId;
+    private String status;
     private String tcNo;
     private String firstName;
     private String lastName;

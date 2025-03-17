@@ -85,13 +85,14 @@ public class UserService {
     public UserDto registerUserPostgres(UserDto userDto) {
         // Bu kısım Postgres veri kaynağına ait işlemleri yürütüyor.
         Boolean userExists = this.postgresUserRepository.existsByTcNo(userDto.getEmail());
-        if (userExists != null) {
+        if (userExists) {
             log.error("UserService - registerUser - Kullanıcı zaten kayıtlı");
             throw new GeneralException("Kullanıcı zaten kayıtlı");
         }
         try {
             com.tahaakocer.user_service.model.postgres.User user = userMapper.dtoToPostgresUser(userDto);
-            return userMapper.postgresUserToDto(user);
+            com.tahaakocer.user_service.model.postgres.User saved = this.postgresUserRepository.save(user);
+            return userMapper.postgresUserToDto(saved);
         } catch (Exception e) {
             log.error("UserService - registerUser - Kullanıcı kaydı sırasında hata oluştu", e);
             throw new GeneralException("Kullanıcı postgres kaydı sırasında hata oluştu", e);

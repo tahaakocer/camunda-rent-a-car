@@ -38,12 +38,12 @@ public class UserController {
         );
     }
     @PostMapping("/register-postgres")
-    public ResponseEntity<GeneralResponse> registerUserPostgres(@RequestBody UserRequest userRequest) {
+    public ResponseEntity<GeneralResponse> registerUserPostgres(@RequestBody UserPostgresRequest userPostgresRequest) {
         return ResponseEntity.ok(GeneralResponse.builder()
                 .code(200)
                 .message("User registered postgres successfully")
                 .data(this.userMapper.dtoToResponse(
-                        this.userService.registerUserPostgres(this.userMapper.requestToDto(userRequest))))
+                        this.userService.registerUserPostgres(this.userMapper.postgresRequestToDto(userPostgresRequest))))
                 .build()
         );
     }

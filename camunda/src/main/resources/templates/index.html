@@ -610,6 +610,17 @@
         .djs-group[data-element-type="bpmn:ServiceTask"] {
             cursor: pointer;
         }
+
+        /* Sıralama için basit ok simgeleri */
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .sort-indicator {
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
     </style>
     <script src="https://unpkg.com/bpmn-js@13.2.2/dist/bpmn-navigated-viewer.production.min.js"></script>
 </head>
@@ -625,11 +636,13 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Name</th>
+                            <th id="nameHeader" class="sortable">Name <span class="sort-indicator"></span></th>
                             <th>Value</th>
-                            <th>Create Time</th>
+                            <th id="createTimeHeader" class="sortable">Create Time <span class="sort-indicator"></span>
+                            </th>
                         </tr>
                     </thead>
+
                     <tbody id="variable-table-body"></tbody>
                 </table>
             </div>
@@ -672,6 +685,7 @@
     <div id="infoIcon" class="info-icon">i</div>
     <!-- JavaScript remains unchanged -->
     <script th:inline="javascript">
+        let allVariables = [];
         /*<![CDATA[*/
         let TOKEN = null;
         const viewer = new BpmnJS({
@@ -711,8 +725,7 @@
                 console.error('Error loading variables:', err);
             }
         }
-
-        function displayVariables(variables) {
+        function renderVariableTable(variables) {
             const tbody = document.getElementById('variable-table-body');
             tbody.innerHTML = '';
             variables.forEach(variable => {
@@ -733,7 +746,7 @@
                 tbody.appendChild(row);
             });
 
-            // Add both hover and click event listeners
+            // Tooltip olayları: hover, click vb. (mevcut kodunuz)
             document.querySelectorAll('.clickable').forEach(element => {
                 element.addEventListener('mouseenter', showValueTooltip);
                 element.addEventListener('mouseleave', hideValueTooltip);
@@ -741,7 +754,7 @@
                 element.addEventListener('click', togglePersistentTooltip);
             });
 
-            // Close persistent tooltip when clicking outside
+            // Dışarı tıklayınca persistent tooltip kapat
             document.addEventListener('click', (event) => {
                 const tooltip = document.getElementById('valueTooltip');
                 if (activePersistentElement && !tooltip.contains(event.target) && !event.target.classList.contains('clickable')) {
@@ -749,6 +762,76 @@
                     activePersistentElement = null;
                 }
             });
+        }
+
+        // Sıralama için durum tutucu: hangi sütun ve hangi yönde sıralanıyor?
+        let sortState = {
+            column: null,
+            ascending: true
+        };
+
+        function setupHeaderSorting() {
+            const nameHeader = document.getElementById('nameHeader');
+            const createTimeHeader = document.getElementById('createTimeHeader');
+
+            // Eğer daha önce eklenmişse olay dinleyicileri tekrardan eklenmesin diye kaldırıyoruz.
+            nameHeader.removeEventListener('click', sortByName);
+            createTimeHeader.removeEventListener('click', sortByCreateTime);
+
+            nameHeader.addEventListener('click', sortByName);
+            createTimeHeader.addEventListener('click', sortByCreateTime);
+        }
+
+        function sortByName() {
+            // Aynı sütuna tıklanırsa yönü ters çevir.
+            if (sortState.column === 'name') {
+                sortState.ascending = !sortState.ascending;
+            } else {
+                sortState.column = 'name';
+                sortState.ascending = true;
+            }
+            updateSortIndicators();
+            const sorted = allVariables.slice().sort((a, b) => {
+                const nameA = a.name.toLowerCase();
+                const nameB = b.name.toLowerCase();
+                if (nameA < nameB) return sortState.ascending ? -1 : 1;
+                if (nameA > nameB) return sortState.ascending ? 1 : -1;
+                return 0;
+            });
+            renderVariableTable(sorted);
+        }
+
+        function sortByCreateTime() {
+            if (sortState.column === 'createTime') {
+                sortState.ascending = !sortState.ascending;
+            } else {
+                sortState.column = 'createTime';
+                sortState.ascending = true;
+            }
+            updateSortIndicators();
+            const sorted = allVariables.slice().sort((a, b) => {
+                // Varsayalım ki createTime ISO formatında (veya tarih karşılaştırmasına uygun)
+                const dateA = new Date(a.createTime);
+                const dateB = new Date(b.createTime);
+                return sortState.ascending ? dateA - dateB : dateB - dateA;
+            });
+            renderVariableTable(sorted);
+        }
+
+        function updateSortIndicators() {
+            // Tüm headerlardaki ok işaretlerini temizle
+            document.querySelectorAll('.sort-indicator').forEach(el => el.textContent = '');
+            if (sortState.column === 'name') {
+                document.querySelector('#nameHeader .sort-indicator').textContent = sortState.ascending ? '▲' : '▼';
+            } else if (sortState.column === 'createTime') {
+                document.querySelector('#createTimeHeader .sort-indicator').textContent = sortState.ascending ? '▲' : '▼';
+            }
+        }
+        // displayVariables fonksiyonunu güncelliyoruz:
+        function displayVariables(variables) {
+            allVariables = variables; // global olarak sakla
+            renderVariableTable(variables);
+            setupHeaderSorting();
         }
 
         function showValueTooltip(event) {
@@ -847,10 +930,11 @@
         }
 
         function setupSearch(variables) {
+            // allVariables zaten burada saklandı
             const searchBar = document.getElementById('search-bar');
             searchBar.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
-                const filteredVariables = variables.filter(variable => {
+                const filteredVariables = allVariables.filter(variable => {
                     const nameMatch = variable.name.toLowerCase().includes(searchTerm);
                     const typeMatch = variable.type.toLowerCase().includes(searchTerm);
                     let valueMatch = false;
@@ -861,7 +945,24 @@
                     }
                     return nameMatch || typeMatch || valueMatch;
                 });
-                displayVariables(filteredVariables);
+                // Eğer bir sıralama aktifse, sıralamayı da uygulayalım:
+                let sortedFiltered = filteredVariables.slice();
+                if (sortState.column === 'name') {
+                    sortedFiltered.sort((a, b) => {
+                        const nameA = a.name.toLowerCase();
+                        const nameB = b.name.toLowerCase();
+                        if (nameA < nameB) return sortState.ascending ? -1 : 1;
+                        if (nameA > nameB) return sortState.ascending ? 1 : -1;
+                        return 0;
+                    });
+                } else if (sortState.column === 'createTime') {
+                    sortedFiltered.sort((a, b) => {
+                        const dateA = new Date(a.createTime);
+                        const dateB = new Date(b.createTime);
+                        return sortState.ascending ? dateA - dateB : dateB - dateA;
+                    });
+                }
+                renderVariableTable(sortedFiltered);
             });
         }
 
@@ -869,19 +970,19 @@
             try {
                 const baseUrl = '/engine-rest';
                 if (!TOKEN) await fetchAccessToken();
-    
+
                 const authHeaders = {
                     "Authorization": `Bearer ${TOKEN}`,
                     "Content-Type": "application/json"
                 };
-    
+
                 const instanceResponse = await fetch(`${baseUrl}/history/process-instance/${processInstanceId}`, {
                     headers: authHeaders
                 });
                 if (!instanceResponse.ok) throw new Error('Failed to fetch process instance');
                 const instance = await instanceResponse.json();
                 document.getElementById('processName').textContent = `${instance.processDefinitionName} - Id: ${processInstanceId}` || 'Process';
-    
+
                 const xmlResponse = await fetch(`${baseUrl}/process-definition/${instance.processDefinitionId}/xml`, {
                     headers: authHeaders
                 });
@@ -890,7 +991,7 @@
                 await viewer.importXML(xmlData.bpmn20Xml);
                 setupTaskDoubleClick();
                 setupServiceTaskHover();
-    
+
                 const elementRegistry = viewer.get('elementRegistry');
                 elementRegistry.forEach((element) => {
                     if (element.type === 'bpmn:ServiceTask') {
@@ -900,11 +1001,11 @@
                 });
                 const canvas = viewer.get('canvas');
                 canvas.zoom('fit-viewport');
-    
+
                 // Reset sets before populating
                 activeActivityIds.clear();
                 completedActivityIds.clear();
-    
+
                 // Fetch and process active activities
                 const activityResponse = await fetch(`${baseUrl}/process-instance/${processInstanceId}/activity-instances`, {
                     headers: authHeaders
@@ -918,7 +1019,7 @@
                 } else {
                     console.warn('No active instances found or process completed');
                 }
-    
+
                 // Fetch and process historical (completed) activities
                 const historyResponse = await fetch(`${baseUrl}/history/activity-instance?processInstanceId=${processInstanceId}`, {
                     headers: authHeaders
@@ -933,7 +1034,7 @@
                     });
                     markCompletedTasks(canvas, viewer.get('overlays'), historyData, activeActivityIds);
                 }
-    
+
                 await loadVariables();
             } catch (err) {
                 console.error('Error loading diagram:', err);
@@ -1034,7 +1135,7 @@
         function setupServiceTaskHover() {
             const eventBus = viewer.get('eventBus');
             const infoIcon = document.getElementById('infoIcon');
-    
+
             eventBus.on('element.hover', (e) => {
                 const element = e.element;
                 if (element.type === 'bpmn:ServiceTask') {
@@ -1049,7 +1150,7 @@
                     }
                 }
             });
-    
+
             eventBus.on('element.mousemove', (e) => {
                 const element = e.element;
                 if (element.type === 'bpmn:ServiceTask') {
@@ -1060,7 +1161,7 @@
                     }
                 }
             });
-    
+
             eventBus.on('element.out', (e) => {
                 const element = e.element;
                 if (element.type === 'bpmn:ServiceTask') {

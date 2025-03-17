@@ -2,6 +2,7 @@ package com.tahaakocer.camunda.delegate;
 
 import camundajar.impl.com.google.gson.Gson;
 import com.tahaakocer.camunda.dto.LogDto;
+import com.tahaakocer.camunda.exception.GeneralException;
 import com.tahaakocer.camunda.service.LogService;
 import com.tahaakocer.camunda.utils.VariableUtils;
 import org.camunda.bpm.engine.delegate.BpmnError;
@@ -49,18 +50,14 @@ public class GenericServiceDelegate implements JavaDelegate {
 
     @Value("${keycloak.token.url}")
     private String tokenUrl;
-
     private Expression serviceName;
     private Expression parameters;
     private Expression results;
-
     private String serviceUrl;
-    private String parametersVal;
-    private String resultsVal;
-
     private Map<String, Object> requestBody;
     private Map fullResponse;
-
+    private List<String> parameterKeys;
+    private List<String> resultFields;
 
     public GenericServiceDelegate(RestTemplate restTemplate, RedisTemplate<String, String> redisTemplate, Gson gson, LogService logService) {
         this.restTemplate = restTemplate;
@@ -71,21 +68,44 @@ public class GenericServiceDelegate implements JavaDelegate {
 
     @Override
     public void execute(DelegateExecution execution) {
+
+            initializeVariables(execution);
+            buildRequestBody(execution);
+
+            String processInstanceId = execution.getProcessInstanceId();
+            String accessTokenKey = "accessToken:" + processInstanceId;
+
+            makeServiceCallWithTokenHandling(execution, accessTokenKey);
+
+            processResponse(execution);
+            logExecution(execution);
+    }
+
+    private void initializeVariables(DelegateExecution execution) {
+        String parametersVal;
+        String resultsVal;
         try {
             serviceUrl = (String) serviceName.getValue(execution);
             parametersVal = (String) parameters.getValue(execution);
             resultsVal = (String) results.getValue(execution);
+        } catch (Exception e) {
+            log.error("GenericServiceDelegate - Hata oluştu: {}", e.getMessage(), e);
+            execution.setVariable("errorMessage", e.getMessage());
+            throw new BpmnError("SERVICE_ERROR", e.getMessage());
+        }
+        log.info("GenericServiceDelegate - serviceUrl: {}", serviceUrl);
+        log.info("GenericServiceDelegate - parameters: {}", parametersVal);
+        log.info("GenericServiceDelegate - results: {}", resultsVal);
 
-            log.info("GenericServiceDelegate - serviceUrl: {}", serviceUrl);
-            log.info("GenericServiceDelegate - parameters: {}", parametersVal);
-            log.info("GenericServiceDelegate - results: {}", resultsVal);
+        parameterKeys = VariableUtils.StringSplit(parametersVal);
+        resultFields = VariableUtils.StringSplit(resultsVal);
 
+        requestBody = new HashMap<>();
+        fullResponse = new HashMap<>();
+    }
 
-            List<String> parameterKeys = VariableUtils.StringSplit(parametersVal);
-            List<String> resultFields = VariableUtils.StringSplit(resultsVal);
-
-
-            this.requestBody = new HashMap<>();
+    private void buildRequestBody(DelegateExecution execution) {
+        try {
             for (String key : parameterKeys) {
                 key = key.trim();
                 Object value = getParameterValue(execution, key);
@@ -93,119 +113,129 @@ public class GenericServiceDelegate implements JavaDelegate {
                     String requestKey = key;
                     if (key.contains("Results")) {
                         String[] parts = key.split("\\.");
-                        requestKey = parts[parts.length - 1]; // Son kısmı al (örneğin keycloakUserId)
+                        requestKey = parts[parts.length - 1]; // Son kısmı alıyoz (örneğin keycloakUserId)
                     }
                     requestBody.put(requestKey, value);
                     log.info("Request body param '{}' set edildi: {}", requestKey, value);
                 } else {
                     log.warn("Parametre '{}' process variable'larda ya da result map'lerinde bulunamadı.", key);
+                    throw new GeneralException("Parametre '" + key + "' process variable'larda ya da result map'lerinde bulunamadı.");
                 }
             }
             log.info("GenericServiceDelegate - Oluşturulan Request Body: {}", requestBody);
-
-            // Process instance'a özgü Redis anahtarlarını oluşturuyoruz.
-            String processInstanceId = execution.getProcessInstanceId();
-            String accessTokenKey = "accessToken:" + processInstanceId;
-            String refreshTokenKey = "refreshToken:" + processInstanceId;
-
-            // Redis'ten access token'ı alıyoruz.
-            String accessToken = redisTemplate.opsForValue().get(accessTokenKey);
-            if (accessToken == null || accessToken.isEmpty()) {
-                log.info("Redis'te access token bulunamadı, yeni token alınıyor.");
-                accessToken = obtainNewAccessToken(execution, accessTokenKey, refreshTokenKey);
-
-            }
-            log.info("accessToken: ", accessToken);
-            @SuppressWarnings("rawtypes")
-            ResponseEntity<Map> responseEntity;
-            try {
-                responseEntity = sendRequest(serviceUrl, requestBody, accessToken);
-            } catch (HttpClientErrorException e) {
-                if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-                    log.warn("Access token geçersiz, yeni token alınıyor (refresh token kullanılmadan).");
-                    accessToken = obtainNewAccessToken(execution, accessTokenKey, refreshTokenKey);
-                    redisTemplate.opsForValue().set(accessTokenKey, accessToken);
-                    responseEntity = sendRequest(serviceUrl, requestBody, accessToken);
-                } else {
-                    String errorMsg = "GenericServiceDelegate - Mikroservis isteği hatası: " + e.getMessage();
-                    execution.setVariable("errorMessage", errorMsg);
-                    throw new BpmnError("SERVICE_ERROR", errorMsg);
-                }
-            }
-
-            fullResponse = responseEntity.getBody();
-            log.info("GenericServiceDelegate - Full Response: {}", fullResponse);
-            if (fullResponse == null) {
-                String errorMsg = "Mikroservisten boş response alındı.";
-                log.error(errorMsg);
-                execution.setVariable("errorMessage", errorMsg);
-                throw new BpmnError("SERVICE_ERROR", errorMsg);
-            }
-
-            // Mikroservis hata kodunu kontrol ediyoruz.
-            if (fullResponse.containsKey("code")) {
-                int code;
-                try {
-                    code = Integer.parseInt(fullResponse.get("code").toString());
-                } catch (NumberFormatException nfe) {
-                    String errorMsg = "Response 'code' değeri sayı formatında değil: " + fullResponse.get("code");
-                    log.error(errorMsg);
-                    execution.setVariable("errorMessage", errorMsg);
-                    throw new BpmnError("SERVICE_ERROR", errorMsg);
-                }
-                HttpStatus status = HttpStatus.resolve(code);
-                if (status == null || status.isError()) {
-                    String message = fullResponse.containsKey("message") ? fullResponse.get("message").toString() : "Hata oluştu.";
-                    String errorMsg = "Mikroservis hata kodu: " + code + ", Mesaj: " + message;
-                    log.error(errorMsg);
-                    execution.setVariable("errorMessage", errorMsg);
-                    throw new BpmnError("SERVICE_ERROR", errorMsg);
-                }
-            }
-
-            // Response içerisindeki belirtilen alanları resultMap'e ekliyoruz.
-            Map<String, Object> resultMap = new HashMap<>();
-            for (String field : resultFields) {
-                field = field.trim();
-                if (fullResponse.containsKey(field)) {
-                    resultMap.put(field, fullResponse.get(field));
-                    log.info("Result field '{}' set edildi: {}", field, fullResponse.get(field));
-                } else {
-                    log.warn("Response içerisinde '{}' alanı bulunamadı.", field);
-                }
-            }
-
-            String currentResultKey = execution.getCurrentActivityId() + "_Results";
-            execution.setVariable(currentResultKey, resultMap);
-            log.info("GenericServiceDelegate - Result map '{}' anahtarıyla set edildi.", currentResultKey);
-
-            @SuppressWarnings("unchecked")
-            List<String> resultKeys = (List<String>) execution.getVariable("resultKeys");
-            if (resultKeys == null) {
-                resultKeys = new ArrayList<>();
-            }
-            resultKeys.add(currentResultKey);
-            execution.setVariable("resultKeys", resultKeys);
-
-
 
         } catch (Exception e) {
             log.error("GenericServiceDelegate - Hata oluştu: {}", e.getMessage(), e);
             execution.setVariable("errorMessage", e.getMessage());
             throw new BpmnError("SERVICE_ERROR", e.getMessage());
         }
-        finally {
-            LogDto log = LogDto.builder()
-                    .activityId(execution.getCurrentActivityId())
-                    .processInstanceId(execution.getProcessInstanceId())
-                    .stepName(execution.getCurrentActivityName())
-                    .serviceName(serviceUrl)
-                    .requestBody(gson.toJson(requestBody))
-                    .responseBody(gson.toJson(fullResponse))
-                    .timestamp(LocalDateTime.now())
-                    .build();
-            this.logService.save(log);
+
+    }
+
+    private void makeServiceCallWithTokenHandling(DelegateExecution execution, String accessTokenKey) {
+        String accessToken;
+        try {
+            accessToken = redisTemplate.opsForValue().get(accessTokenKey);
+            if (accessToken == null || accessToken.isEmpty()) {
+                log.info("Redis'te access token bulunamadı, yeni token alınıyor.");
+                accessToken = obtainNewAccessToken();
+                redisTemplate.opsForValue().set(accessTokenKey, accessToken);
+            }
+            ResponseEntity<Map> responseEntity = sendRequest(serviceUrl, requestBody, accessToken);
+            fullResponse = responseEntity.getBody();
+            log.info("GenericServiceDelegate - Full Response: {}", fullResponse);
+            if (fullResponse == null) {
+                String errorMsg = "Mikroservisten boş response alındı.";
+                log.error(errorMsg);
+                execution.setVariable("errorMessage", errorMsg);
+                //noinspection unchecked
+                fullResponse.put("errorMessage", errorMsg);
+                throw new BpmnError("SERVICE_ERROR", errorMsg);
+            }
         }
+        catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                log.warn("Access token geçersiz, yeni token alınıyor.");
+                try {
+                    accessToken = obtainNewAccessToken();
+                    redisTemplate.opsForValue().set(accessTokenKey, accessToken);
+                    ResponseEntity<Map> responseEntity = sendRequest(serviceUrl, requestBody, accessToken);
+                    fullResponse = responseEntity.getBody();
+                    log.info("GenericServiceDelegate - Full Response (after token refresh): {}", fullResponse);
+                } catch (Exception ex) {
+                    String errorMsg = "Yeni token alımı sırasında hata: " + ex.getMessage();
+                    log.error(errorMsg);
+                    //noinspection unchecked
+                    fullResponse.put("errorMessage", errorMsg);
+                    execution.setVariable("errorMessage", errorMsg);
+                    throw new BpmnError("TOKEN_ERROR", errorMsg);
+                }
+            } else {
+                log.error("GenericServiceDelegate - Mikroservis isteği hatası: {}", e.getMessage());
+                String errorMsg = "GenericServiceDelegate - Mikroservis isteği hatası: " + e.getMessage();
+                execution.setVariable("errorMessage", errorMsg);
+                //noinspection unchecked
+                fullResponse.put("errorMessage", errorMsg);
+                throw new BpmnError("SERVICE_ERROR", errorMsg);
+            }
+        }
+        catch (Exception e) {
+            log.error("GenericServiceDelegate - Hata oluştu: {}", e.getMessage(), e);
+            execution.setVariable("errorMessage", e.getMessage());
+            //noinspection unchecked
+            fullResponse.put("errorMessage", e.getMessage());
+            throw new BpmnError("SERVICE_ERROR", e.getMessage());
+        }
+        finally {
+            logExecution(execution);
+        }
+
+    }
+
+    private void processResponse(DelegateExecution execution) {
+        if (fullResponse.containsKey("code")) {
+            int code;
+            try {
+                code = Integer.parseInt(fullResponse.get("code").toString());
+            } catch (NumberFormatException nfe) {
+                String errorMsg = "Response 'code' değeri sayı formatında değil: " + fullResponse.get("code");
+                log.error(errorMsg);
+                execution.setVariable("errorMessage", errorMsg);
+                throw new BpmnError("SERVICE_ERROR", errorMsg);
+            }
+
+            HttpStatus status = HttpStatus.resolve(code);
+            if (status == null || status.isError()) {
+                String message = fullResponse.containsKey("message") ? fullResponse.get("message").toString() : "Hata oluştu.";
+                String errorMsg = "Mikroservis hata kodu: " + code + ", Mesaj: " + message;
+                log.error(errorMsg);
+                execution.setVariable("errorMessage", errorMsg);
+                throw new BpmnError("SERVICE_ERROR", errorMsg);
+            }
+        }
+
+        Map<String, Object> resultMap = new HashMap<>();
+        for (String field : resultFields) {
+            field = field.trim();
+            if (fullResponse.containsKey(field)) {
+                resultMap.put(field, fullResponse.get(field));
+                log.info("Result field '{}' set edildi: {}", field, fullResponse.get(field));
+            } else {
+                log.warn("Response içerisinde '{}' alanı bulunamadı.", field);
+            }
+        }
+
+        String currentResultKey = execution.getCurrentActivityId() + "_Results";
+        execution.setVariable(currentResultKey, resultMap);
+        log.info("GenericServiceDelegate - Result map '{}' anahtarıyla set edildi.", currentResultKey);
+
+        @SuppressWarnings("unchecked")
+        List<String> resultKeys = (List<String>) execution.getVariable("resultKeys");
+        if (resultKeys == null) {
+            resultKeys = new ArrayList<>();
+        }
+        resultKeys.add(currentResultKey);
+        execution.setVariable("resultKeys", resultKeys);
     }
 
     private Object getParameterValue(DelegateExecution execution, String param) {
@@ -216,7 +246,6 @@ public class GenericServiceDelegate implements JavaDelegate {
             return value;
         }
 
-
         @SuppressWarnings("unchecked")
         List<String> resultKeys = (List<String>) execution.getVariable("resultKeys");
         if (resultKeys == null || resultKeys.isEmpty()) {
@@ -224,25 +253,23 @@ public class GenericServiceDelegate implements JavaDelegate {
             return null;
         }
 
-
         if (param.contains("Results")) {
             String[] parts = param.split("\\.");
-            String resultKey = parts[0]; // Örneğin: ST_DemoService_Results
+            String resultKey = parts[0]; /// ST_DemoService_Results gibi gibi
             if (execution.hasVariable(resultKey)) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> resultMap = (Map<String, Object>) execution.getVariable(resultKey);
                 if (resultMap != null) {
                     Object result = extractNestedValue(resultMap, parts, 1);
                     if (result != null) {
-                        log.info("Parametre '{}' spesifik Results '{}' içinden bulundu: {}", param, resultKey, result);
+                        log.info("Parametre '{}' Results '{}' içinden bulundu: {}", param, resultKey, result);
                         return result;
                     }
                 }
             }
-            log.warn("Spesifik Results '{}' bulunamadı veya değer yok.", resultKey);
+            log.warn("Results '{}' bulunamadı veya değer yok.", resultKey);
             return null;
         }
-
 
         for (int i = resultKeys.size() - 1; i >= 0; i--) {
             String key = resultKeys.get(i);
@@ -253,7 +280,6 @@ public class GenericServiceDelegate implements JavaDelegate {
                 return resultMap.get(param);
             }
         }
-
 
         for (int i = resultKeys.size() - 1; i >= 0; i--) {
             String key = resultKeys.get(i);
@@ -271,7 +297,6 @@ public class GenericServiceDelegate implements JavaDelegate {
         log.warn("Parametre '{}' hiçbir yerde bulunamadı.", param);
         return null;
     }
-
 
     private Object extractNestedValue(Map<String, Object> map, String[] parts, int index) {
         if (index >= parts.length) {
@@ -292,7 +317,6 @@ public class GenericServiceDelegate implements JavaDelegate {
         return null;
     }
 
-
     private Object searchInMap(Map<String, Object> map, String param) {
         if (map.containsKey(param)) {
             return map.get(param);
@@ -310,7 +334,6 @@ public class GenericServiceDelegate implements JavaDelegate {
         return null;
     }
 
-
     private ResponseEntity<Map> sendRequest(String serviceUrl, Map<String, Object> requestBody, String token) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -321,7 +344,7 @@ public class GenericServiceDelegate implements JavaDelegate {
         return restTemplate.postForEntity(serviceUrl, entity, Map.class);
     }
 
-    private String obtainNewAccessToken(DelegateExecution execution, String accessTokenKey, String refreshTokenKey) {
+    private String obtainNewAccessToken() {
         log.info("Yeni access token almak için keycloaka login olunuyor.");
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -342,8 +365,23 @@ public class GenericServiceDelegate implements JavaDelegate {
         String newAccessToken = body.get("access_token").toString();
         log.info("Yeni access token başarıyla alındı.");
 
-        redisTemplate.opsForValue().set(accessTokenKey, newAccessToken);
-
         return newAccessToken;
+    }
+
+    private void logExecution(DelegateExecution execution) {
+        try {
+            LogDto log = LogDto.builder()
+                    .activityId(execution.getCurrentActivityId())
+                    .processInstanceId(execution.getProcessInstanceId())
+                    .stepName(execution.getCurrentActivityName())
+                    .serviceName(serviceUrl)
+                    .requestBody(gson.toJson(requestBody))
+                    .responseBody(fullResponse != null ? gson.toJson(fullResponse) : null)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            this.logService.save(log);
+        } catch (Exception e) {
+            log.error("Log kaydederken hata oluştu: {}", e.getMessage(), e);
+        }
     }
 }

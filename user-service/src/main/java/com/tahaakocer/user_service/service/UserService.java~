@@ -91,7 +91,8 @@ public class UserService {
         }
         try {
             com.tahaakocer.user_service.model.postgres.User user = userMapper.dtoToPostgresUser(userDto);
-            return userMapper.postgresUserToDto(user);
+            com.tahaakocer.user_service.model.postgres.User saved = this.postgresUserRepository.save(user);
+            return userMapper.postgresUserToDto(saved);
         } catch (Exception e) {
             log.error("UserService - registerUser - Kullanıcı kaydı sırasında hata oluştu", e);
             throw new GeneralException("Kullanıcı postgres kaydı sırasında hata oluştu", e);
@@ -169,7 +170,7 @@ public class UserService {
             RealmResource realmResource = keycloak.realm(realm);
             UserResource userResource = realmResource.users().get(userId);
             List<ClientRepresentation> clients = realmResource.clients().findByClientId(clientId);
-            String clientUuid = realmResource.clients().findByClientId(clientId).getFirst().getId();
+            String clientUuid = clients.get(0).getId();
             RoleRepresentation clientRole = realmResource.clients().get(clientUuid)
                     .roles().get(roleName).toRepresentation();
             userResource.roles().clientLevel(clientUuid).add(Collections.singletonList(clientRole));

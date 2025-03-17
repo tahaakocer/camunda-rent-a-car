@@ -29,7 +29,7 @@
           <camunda:string>http://localhost:8282/v1/users/is-form-valid</camunda:string>
         </camunda:field>
         <camunda:field name="parameters">
-          <camunda:string>  tcNo,firstName,lastName,birthYear,phoneNumber,email,password</camunda:string>
+          <camunda:string>tcNo,firstName,lastName,birthYear,phoneNumber,email,password</camunda:string>
         </camunda:field>
         <camunda:field name="results">
           <camunda:string>code,message,data</camunda:string>
@@ -179,10 +179,10 @@ execution.setVariable('emailAttempCount', emailAttempCount);</bpmn:script>
     <bpmn:serviceTask id="ST_SavePostgresDb" name="Veritabanına Kaydet" camunda:class="com.tahaakocer.camunda.delegate.GenericServiceDelegate">
       <bpmn:extensionElements>
         <camunda:field name="serviceName">
-          <camunda:string>localhost:8282/v1/users/register-postgres</camunda:string>
+          <camunda:string>http://localhost:8282/v1/users/register-postgres</camunda:string>
         </camunda:field>
         <camunda:field name="parameters">
-          <camunda:string>tcNo,firstName,lastName,birthYear,phoneNumber,email</camunda:string>
+          <camunda:string>tcNo,firstName,lastName,birthYear,phoneNumber,email,ST_KeycloakRegister_Results.data.keycloakUserId,ST_KeycloakRegister_Results.data.status</camunda:string>
         </camunda:field>
         <camunda:field name="results">
           <camunda:string>code,message,data</camunda:string>
